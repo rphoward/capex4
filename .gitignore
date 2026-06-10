@@ -12,5 +12,5 @@ tmp/browser-asset-cache-proof/
 tmp/codex-browser-proof/profile/
 tmp/*.log
 
-# Separate clone (kleosr/cursordoctrine) — install via cursordoctrine/INSTALL.md, not vendored here
+# Nested clone of https://github.com/kleosr/cursordoctrine — install hooks separately, not vendored here
 cursordoctrine/
