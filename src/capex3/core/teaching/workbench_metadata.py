@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 from .cash_flow_stability_evidence import CASH_FLOW_STABILITY_EVIDENCE_CONCEPT
+from .evidence_presentation import presentation_for_layer
 
 JOURNEY_STAGES = [
     {
@@ -240,25 +241,36 @@ INPUT_FIELD_CONTROLS = {
     },
 }
 
+def _metric_strip_navigation_item(
+    field: str,
+    layer: str,
+    cta: str,
+) -> dict[str, str]:
+    presentation = presentation_for_layer(layer)
+    return {
+        "field": field,
+        "layer": layer,
+        "cta": cta,
+        "focus": presentation.get("primaryReward", ""),
+    }
+
+
 METRIC_STRIP_NAVIGATION = [
-    {
-        "field": "trueMonthlyCashFlow",
-        "layer": "cashFlow",
-        "cta": "See the breakdown",
-        "focus": "receipt",
-    },
-    {
-        "field": "totalMonthlyCapexReserve",
-        "layer": "repairDrivers",
-        "cta": "See what drives it",
-        "focus": "drivers",
-    },
-    {
-        "field": "breakevenGrossRent",
-        "layer": "whatWorks",
-        "cta": "What would work?",
-        "focus": "thresholds",
-    },
+    _metric_strip_navigation_item(
+        "trueMonthlyCashFlow",
+        "cashFlow",
+        "See the breakdown",
+    ),
+    _metric_strip_navigation_item(
+        "totalMonthlyCapexReserve",
+        "repairDrivers",
+        "See what drives it",
+    ),
+    _metric_strip_navigation_item(
+        "breakevenGrossRent",
+        "whatWorks",
+        "What would work?",
+    ),
 ]
 
 _METRIC_STRIP_LAYER_BY_FIELD = {

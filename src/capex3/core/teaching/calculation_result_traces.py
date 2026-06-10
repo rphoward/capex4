@@ -555,8 +555,6 @@ def _receipt_row(
     engine_field: str,
     value: object,
     receipt_kind: str,
-    *,
-    show_engine_field: bool = False,
 ) -> dict[str, object]:
     return {
         "label": label,
@@ -564,7 +562,6 @@ def _receipt_row(
         "value": value,
         "kind": "moneyCents",
         "receiptKind": receipt_kind,
-        "showEngineField": show_engine_field,
     }
 
 

@@ -15,12 +15,15 @@ from capex3.presentation.htmx_format import (
     _hx_post,
 )
 from capex3.presentation.htmx_evidence import (
-    _evidence_drilldown,
-    _evidence_focus_class,
     _result_trace,
     _summary_cards_html,
     _trace_collection,
     _trace_summary_cards,
+)
+from capex3.presentation.htmx_evidence_primitives import (
+    _evidence_drilldown,
+    _evidence_focus_class,
+    _evidence_layer_shell,
 )
 from capex3.presentation.htmx_state import UiState, _hidden_attr_for_layer
 
@@ -147,12 +150,7 @@ def _cash_flow_stability_section(state: UiState) -> str:
         if isinstance(teaching, Mapping)
         else ""
     )
-    source_note = trace.get("sourceNote") or "App-only resilience evidence."
-    meta_line = "App-only resilience · not workbook-canonical"
     ledger_html = f"""
-<p class="layer-copy disclaimer app-regression">
-  <strong>{_html(meta_line)}</strong> — {_html(str(source_note))}
-</p>
 <div class="tbl-scroll">
   <table class="ledger-tbl" id="cash-flow-stability-refi-table">
     <thead>
@@ -169,13 +167,9 @@ def _cash_flow_stability_section(state: UiState) -> str:
     <tbody>{payment_rows}</tbody>
   </table>
 </div>"""
-    drilldown = _evidence_drilldown(
-        _drilldown_title(trace, "Emergency ledger tables"),
-        ledger_html,
-    )
-    return f"""
-<section class="evidence-layer" data-evidence-layer="cashFlowStability"{hidden}>
-  <p class="layer-copy">{_html(framing)}</p>
+    drilldown = _evidence_drilldown(_drilldown_title(trace), ledger_html)
+    layer_copy = f'<p class="layer-copy">{_html(framing)}</p>' if framing else ""
+    body = f"""
   <div id="cash-flow-stability-cards" class="evidence-summary cash-flow-stability-cards evidence-reward">{_summary_cards_html(_trace_summary_cards(trace))}</div>
   <div class="two-path-comparison evidence-reward" id="cash-flow-stability-two-path">
     <div class="two-path-column">
@@ -187,8 +181,14 @@ def _cash_flow_stability_section(state: UiState) -> str:
       <div class="receipt">{debt_shock_rows}</div>
     </div>
   </div>
-  {drilldown}
-</section>"""
+  {drilldown}"""
+    return _evidence_layer_shell(
+        "cashFlowStability",
+        hidden=hidden,
+        trace=trace,
+        layer_copy=layer_copy,
+        body_html=body,
+    )
 
 
 def _cash_flow_stability_path_row(row: Mapping[str, object]) -> str:
@@ -229,7 +229,7 @@ def _what_works_section(state: UiState) -> str:
     hidden = _hidden_attr_for_layer(state, "whatWorks")
     trace = _result_trace(state, "whatWorks")
     questions = _trace_collection(trace, ("questions", "thresholdQuestions", "solverQuestions"))
-    focus_class = _evidence_focus_class(state, "whatWorks", "thresholds")
+    focus_class = _evidence_focus_class(state, "whatWorks")
     threshold_cards = "".join(
         _threshold_card(state, question, show_id=False) for question in questions
     )
@@ -237,20 +237,20 @@ def _what_works_section(state: UiState) -> str:
         threshold_cards = '<div class="error-text">Evidence trace unavailable.</div>'
     layer_copy = trace.get("layerCopy") or SOLVER_DISCLAIMER["layerCopy"]
     solver_note = trace.get("solverNote") or SOLVER_DISCLAIMER["solverNote"]
-    disclaimer = _solver_disclaimer_html(trace)
-    drilldown_body = (
-        f'{disclaimer}<div class="slv-note">{_html(str(solver_note))}</div>'
-    )
     drilldown = _evidence_drilldown(
-        _drilldown_title(trace, "Solver assumptions"),
-        drilldown_body,
+        _drilldown_title(trace),
+        f'<div class="slv-note">{_html(str(solver_note))}</div>',
     )
-    return f"""
-<section class="evidence-layer" data-evidence-layer="whatWorks"{hidden}>
-  <p class="layer-copy">{_html(str(layer_copy))}</p>
+    body = f"""
   <div class="slv-grid evidence-reward{focus_class}" id="threshold-grid">{threshold_cards}</div>
-  {drilldown}
-</section>"""
+  {drilldown}"""
+    return _evidence_layer_shell(
+        "whatWorks",
+        hidden=hidden,
+        trace=trace,
+        layer_copy=f'<p class="layer-copy">{_html(str(layer_copy))}</p>',
+        body_html=body,
+    )
 
 
 def _threshold_card(

@@ -436,8 +436,14 @@ class PresentationHtmxRendererTest(unittest.TestCase):
 
         what_works = handle_post("/ui/evidence", {"activeEvidenceLayer": "whatWorks"})
         body = what_works.body
+        what_works_layer = body.split('data-evidence-layer="whatWorks"', 1)[1].split(
+            "</section>",
+            1,
+        )[0]
 
-        self.assertIn('class="layer-copy disclaimer app-regression"', body)
+        self.assertIn('class="evidence-reward-label">Threshold questions</p>', what_works_layer)
+        self.assertIn('class="layer-copy disclaimer teaching-only"', what_works_layer)
+        self.assertIn("App-side regression only", what_works_layer)
         self.assertIn("app regression solver", body.lower())
         self.assertIn("not workbook-canonical solver output", body.lower())
 
@@ -506,6 +512,7 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self,
     ) -> None:
         response = handle_post("/ui/evidence", {"activeEvidenceLayer": "cashFlow"})
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
         cash_flow_layer = response.body.split('data-evidence-layer="cashFlow"', 1)[1].split(
             "</section>",
             1,
@@ -517,6 +524,7 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         drilldown = cash_flow_layer.split('<details class="evidence-drilldown">', 1)[1]
 
         self.assertIn('class="receipt evidence-reward"', response.body)
+        self.assertIn('class="evidence-reward-label">Receipt waterfall</p>', cash_flow_layer)
         self.assertIn("Expected monthly rent", reward)
         self.assertIn("Vacancy rate", reward)
         self.assertIn("Usable income", reward)
@@ -526,7 +534,8 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn('class="rcpt-row total-row"', reward)
         self.assertIn('class="rcpt-val ded">-$', reward)
         self.assertIn('class="rcpt-val neg">-$', reward)
-        self.assertNotIn('class="rcpt-eng"', reward)
+        self.assertIn('class="rcpt-eng">actualGrossMonthlyRent</span>', reward)
+        self.assertIn(".evidence-reward .rcpt-eng", stylesheet)
         self.assertIn('class="rcpt-eng">actualGrossMonthlyRent</span>', drilldown)
         self.assertIn('class="rcpt-eng">totalMonthlyCapexReserve</span>', drilldown)
         self.assertIn("Show workbook math", response.body)
