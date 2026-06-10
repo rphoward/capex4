@@ -1,0 +1,772 @@
+from http import HTTPStatus
+import json
+from pathlib import Path
+import unittest
+from unittest.mock import patch
+
+from capex3.presentation.htmx_renderer import _resolve_overlap_warning_latch
+from capex3.presentation.rental_capex_http_api import HtmlResponse
+from capex3.presentation.rental_capex_http_api import handle_get
+from capex3.presentation.rental_capex_http_api import handle_post
+from capex3.core.teaching.offer_ready_evidence import (
+    OVERLAP_WARNING_SHORT,
+    SURVIVAL_FAIL_HEADLINE,
+)
+from capex3.presentation.http_contracts import (
+    METRIC_GUIDANCE,
+    METRIC_SOURCE_NOTES,
+    calculate_payload,
+    defaults_payload,
+    workbench_payload,
+)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+STYLESHEET_PATH = REPO_ROOT / "src" / "capex3" / "presentation" / "browser_assets" / "styles.css"
+
+
+class PresentationHtmxRendererTest(unittest.TestCase):
+    def test_ui_actions_return_server_rendered_fragments_without_app_javascript(self) -> None:
+        actions = [
+            ("GET", "/ui/app", {}),
+            ("POST", "/ui/calculate", {}),
+            ("POST", "/ui/step", {"activeStep": "decision"}),
+            ("POST", "/ui/evidence", {"activeEvidenceLayer": "whatWorks"}),
+            ("POST", "/ui/metric", {"activeMetricField": "year10Roi"}),
+            ("POST", "/ui/reset", {"actualGrossMonthlyRent": "9999"}),
+            ("POST", "/ui/new-walkthrough", {"activeStep": "walkthrough"}),
+            (
+                "POST",
+                "/ui/override",
+                {
+                    "activeStep": "walkthrough",
+                    "overrideComponent": "Roofing: Arch. Asphalt (per sq)",
+                    "overrideQuantity": "33",
+                    "overrideAge": "7",
+                },
+            ),
+            (
+                "POST",
+                "/ui/solve",
+                {
+                    "activeStep": "decision",
+                    "solverVariable": "rent",
+                    "solverMetric": "monthlyCashFlow",
+                    "solverTarget": "0",
+                },
+            ),
+            (
+                "POST",
+                "/ui/solve-threshold",
+                {
+                    "activeStep": "decision",
+                    "activeEvidenceLayer": "whatWorks",
+                    "questionId": "breakEvenRent",
+                },
+            ),
+            (
+                "POST",
+                "/ui/apply-solver",
+                {
+                    "activeStep": "decision",
+                    "solverApplyField": "actualGrossMonthlyRent",
+                    "solverSolvedValue": "4200",
+                },
+            ),
+        ]
+
+        for method, path, form in actions:
+            with self.subTest(path=path):
+                response = handle_get(path) if method == "GET" else handle_post(path, form)
+
+                self.assertIsInstance(response, HtmlResponse)
+                self.assertEqual(HTTPStatus.OK, response.status)
+                self.assertIn('id="app"', response.body)
+                self.assertIn('hx-target="#app"', response.body)
+                self.assertIn('hx-swap="outerHTML"', response.body)
+                self.assertNotIn("<script", response.body)
+                self.assertNotIn('type="' + 'module"', response.body)
+                self.assertNotIn("/assets/" + "modules/", response.body)
+                self.assertNotIn("fetch" + "(", response.body)
+                self.assertNotIn("XML" + "HttpRequest", response.body)
+                self.assertNotIn("http" + "://", response.body)
+                self.assertNotIn("https" + "://", response.body)
+
+    def test_threshold_solver_preserves_question_and_apply_contract(self) -> None:
+        response = handle_post(
+            "/ui/solve-threshold",
+            {
+                "activeStep": "decision",
+                "activeEvidenceLayer": "whatWorks",
+                "questionId": "breakEvenRent",
+            },
+        )
+
+        self.assertIsInstance(response, HtmlResponse)
+        self.assertIn("Solved preview", response.body)
+        self.assertIn('id="run-status">Solved preview</div>', response.body)
+        self.assertIn('data-evidence-layer="whatWorks"', response.body)
+        self.assertIn('name="solverApplyField" value="actualGrossMonthlyRent"', response.body)
+        self.assertIn('name="solverSolvedValue"', response.body)
+        self.assertIn('data-solver-apply hx-post="/ui/apply-solver"', response.body)
+        self.assertNotIn("Solver error", response.body)
+
+    def test_apply_solver_updates_server_owned_form_state(self) -> None:
+        response = handle_post(
+            "/ui/apply-solver",
+            {
+                "activeStep": "decision",
+                "solverApplyField": "actualGrossMonthlyRent",
+                "solverSolvedValue": "4200",
+            },
+        )
+
+        self.assertIsInstance(response, HtmlResponse)
+        self.assertIn('id="run-status">Current</div>', response.body)
+        self.assertIn('name="activeStep" value="decision"', response.body)
+        self.assertIn('name="actualGrossMonthlyRent" value="4200.0"', response.body)
+        self.assertNotIn("Solved preview", response.body)
+
+    def test_reset_restores_default_inputs_and_clears_walkthrough_overrides(self) -> None:
+        default_rent = str(defaults_payload()["inputs"]["actualGrossMonthlyRent"])
+
+        changed = handle_post(
+            "/ui/calculate",
+            {
+                "activeStep": "listing",
+                "actualGrossMonthlyRent": "9999",
+            },
+        )
+        self.assertIn('name="actualGrossMonthlyRent"', changed.body)
+        self.assertIn('value="9999', changed.body)
+
+        with_override = handle_post(
+            "/ui/override",
+            {
+                "activeStep": "walkthrough",
+                "overrideComponent": "Roofing: Arch. Asphalt (per sq)",
+                "overrideQuantity": "33",
+                "overrideAge": "7",
+            },
+        )
+        self.assertIn("Roofing: Arch. Asphalt (per sq)", with_override.body)
+        self.assertNotIn("No active overrides", with_override.body)
+
+        reset = handle_post(
+            "/ui/reset",
+            {
+                "activeStep": "walkthrough",
+                "actualGrossMonthlyRent": "9999",
+                "componentOverridesJson": '{"Roofing: Arch. Asphalt (per sq)": {"age": 7}}',
+            },
+        )
+        self.assertNotIn('value="9999', reset.body)
+        self.assertIn(f'value="{default_rent}"', reset.body)
+        self.assertIn('name="actualGrossMonthlyRent"', reset.body)
+        self.assertIn('name="componentOverridesJson" value="{}"', reset.body)
+        self.assertIn("No active overrides", reset.body)
+        self.assertEqual(1, reset.body.count('hx-post="/ui/reset"'))
+
+    def test_malformed_hidden_state_falls_back_to_default_renderable_ui(self) -> None:
+        response = handle_post(
+            "/ui/calculate",
+            {
+                "activeStep": "missing-step",
+                "activeEvidenceLayer": "missing-layer",
+                "componentOverridesJson": "{not-json",
+            },
+        )
+
+        self.assertIsInstance(response, HtmlResponse)
+        self.assertIn('id="run-status">Current</div>', response.body)
+        self.assertIn('id="active-step-title">Listing Check</h2>', response.body)
+        self.assertIn('id="evidence-title">10-Year Story</h2>', response.body)
+        self.assertIn('name="componentOverridesJson" value="{}"', response.body)
+
+    def test_user_supplied_text_is_escaped_in_server_rendered_markup(self) -> None:
+        malicious_address = '<script>alert("x")</script>'
+
+        response = handle_post(
+            "/ui/calculate",
+            {
+                "activeStep": "listing",
+                "propertyAddress": malicious_address,
+            },
+        )
+
+        self.assertIsInstance(response, HtmlResponse)
+        self.assertNotIn(malicious_address, response.body)
+        self.assertNotIn("<script>", response.body)
+        self.assertIn(
+            'value="&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;"',
+            response.body,
+        )
+
+    def test_handoff_shell_visual_markers_are_server_rendered_and_css_owned(self) -> None:
+        response = handle_get("/")
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+
+        self.assertIsInstance(response, HtmlResponse)
+        self.assertIn('class="topbar-left"', response.body)
+        self.assertIn('class="brand-lockup"', response.body)
+        self.assertIn('class="deal-label" id="deal-label">Unlabeled deal · Avg Rent: 2-Bedroom</span>', response.body)
+        self.assertIn('class="input-panel left-panel"', response.body)
+        self.assertIn('class="output-panel right-panel"', response.body)
+        self.assertIn('class="active-step active-step-summary"', response.body)
+        self.assertIn('class="journey-step active"', response.body)
+        self.assertIn('class="evidence-tab active"', response.body)
+        self.assertIn("--banana:", stylesheet)
+        self.assertIn("--banana-dim:", stylesheet)
+        self.assertIn("--depth-shadow:", stylesheet)
+        self.assertIn(".deal-label", stylesheet)
+        self.assertIn("grid-template-columns: minmax(260px, 0.52fr) minmax(420px, 1fr);", stylesheet)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) 68px;", stylesheet)
+        self.assertIn("overflow-y: auto;", stylesheet)
+        self.assertIn("overscroll-behavior: contain;", stylesheet)
+        self.assertIn("border-radius: var(--radius);", stylesheet)
+        self.assertIn("border-bottom: 1px solid var(--banana-dim);", stylesheet)
+        self.assertIn("border-right: 1px solid var(--banana-dim);", stylesheet)
+        self.assertIn('src="/assets/vendor/htmx.min.js"', response.body)
+        self.assertNotIn('type="' + 'module"', response.body)
+        self.assertNotIn("/assets/" + "modules/", response.body)
+        self.assertNotIn("https" + "://", response.body)
+        self.assertNotIn("https" + "://", stylesheet)
+
+    def test_slice2_journey_fields_controls_and_decision_packet_placeholder(self) -> None:
+        listing = handle_get("/")
+        walkthrough = handle_post("/ui/step", {"activeStep": "walkthrough"})
+        loan = handle_post("/ui/step", {"activeStep": "loan"})
+        decision = handle_post("/ui/step", {"activeStep": "decision"})
+
+        listing_fields = _field_grid_markup(listing.body)
+        self.assertIn("Property label or address", listing_fields)
+        self.assertIn("Area", listing_fields)
+        self.assertIn("Property type", listing_fields)
+        self.assertIn("Purchase price", listing_fields)
+        self.assertIn("Expected monthly rent", listing_fields)
+        self.assertIn("Annual property taxes", listing_fields)
+        self.assertNotIn("Monthly HOA", listing_fields)
+        self.assertNotIn("Management fee", listing_fields)
+        self.assertIn('id="recalculate-button"', listing.body)
+        self.assertIn('id="next-step-button"', listing.body)
+        self.assertIn('value="walkthrough"', listing.body)
+
+        walkthrough_fields = _field_grid_markup(walkthrough.body)
+        self.assertIn("Overall effective age", walkthrough_fields)
+        self.assertIn("Repair-cost inflation", walkthrough_fields)
+        self.assertIn("Annual cleaning and maintenance", walkthrough_fields)
+        self.assertIn("Rough rehab or make-ready", walkthrough_fields)
+        self.assertIn("Age Check", walkthrough.body)
+        self.assertIn("Size / Count Check", walkthrough.body)
+        self.assertIn('value="loan"', walkthrough.body)
+
+        loan_fields = _field_grid_markup(loan.body)
+        self.assertIn("Down payment", loan_fields)
+        self.assertIn("Loan interest rate", loan_fields)
+        self.assertIn("Loan term", loan_fields)
+        self.assertIn("Repair fund APY", loan_fields)
+        self.assertIn("Emergency loan APR", loan_fields)
+        self.assertIn("Emergency loan term", loan_fields)
+        self.assertIn("Estimated closing cost rate", loan_fields)
+        self.assertIn("Monthly HOA", loan_fields)
+        self.assertIn("Annual insurance", loan_fields)
+        self.assertIn("Management fee", loan_fields)
+        self.assertIn("Closing cost override", loan_fields)
+        self.assertIn('value="decision"', loan.body)
+
+        self.assertIn('id="decision-packet-placeholder"', decision.body)
+        self.assertIn("Decision Packet", decision.body)
+        self.assertIn("Generate packet", decision.body)
+        self.assertIn("disabled", decision.body)
+        self.assertNotIn('id="journey-actions"', decision.body)
+
+    def test_phase4_slice3_operating_expense_hidden_defaults(self) -> None:
+        walkthrough = handle_post("/ui/step", {"activeStep": "walkthrough"})
+        loan = handle_post("/ui/step", {"activeStep": "loan"})
+
+        walkthrough_fields = _field_grid_markup(walkthrough.body)
+        self.assertIn("Annual cleaning and maintenance", walkthrough_fields)
+        self.assertIn("Annual legal and professional", walkthrough_fields)
+        self.assertIn("Annual advertising and leasing", walkthrough_fields)
+        self.assertIn('name="legalProfessionalAnnual"', walkthrough_fields)
+        self.assertIn('name="advertisingLeasingAnnual"', walkthrough_fields)
+
+        loan_fields = _field_grid_markup(loan.body)
+        self.assertIn("Monthly HOA", loan_fields)
+        self.assertIn("Monthly landlord-paid utilities", loan_fields)
+        self.assertIn('name="monthlyUtilitiesLandlordPaid"', loan_fields)
+        self.assertIn("Annual insurance", loan_fields)
+
+    def test_slice2_metric_strip_and_pin_controls_are_server_rendered(self) -> None:
+        default = handle_get("/")
+        pinned = handle_post(
+            "/ui/evidence",
+            {
+                "activeStep": "walkthrough",
+                "activeEvidenceLayer": "repairDrivers",
+            },
+        )
+
+        strip = _metric_strip_markup(default.body)
+        self.assertEqual(3, strip.count('name="activeMetricField"'))
+        self.assertIn("True monthly cash flow", strip)
+        self.assertIn("Monthly repair fund", strip)
+        self.assertIn("Break-even rent", strip)
+        self.assertIn("Tap for full breakdown", strip)
+        self.assertIn("Tap to see drivers", strip)
+        self.assertIn("Tap for thresholds", strip)
+        self.assertIn('value="trueMonthlyCashFlow"', strip)
+        self.assertIn('value="totalMonthlyCapexReserve"', strip)
+        self.assertIn('value="breakevenGrossRent"', strip)
+
+        self.assertIn('id="evidence-mode">Following Listing Check</p>', default.body)
+        self.assertIn('id="evidence-follow" name="evidenceFollowsStep" type="checkbox" value="true" checked', default.body)
+        self.assertIn('id="evidence-mode">Pinned: Repair Drivers</p>', pinned.body)
+        self.assertIn('class="pin-badge">Pinned</span>', pinned.body)
+        self.assertIn('id="overview-button"', pinned.body)
+        self.assertIn('name="activeEvidenceLayer" value="tenYear"', pinned.body)
+        self.assertIn("Follow my step", pinned.body)
+
+    def test_slice3_ten_year_story_uses_source_chart_shell_and_four_series(self) -> None:
+        response = handle_get("/")
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('class="chart-wrap" id="ten-year-story-chart"', response.body)
+        self.assertIn('class="chart-side-legend"', response.body)
+        self.assertIn("Liquidation wealth (L17)", response.body)
+        self.assertIn("Cash position (L16 + initial)", response.body)
+        self.assertIn("Money market", response.body)
+        self.assertIn(">IRA</span>", response.body)
+        self.assertIn('class="rental-area"', response.body)
+        self.assertIn('class="ten-year-series cash-flow"', response.body)
+        self.assertIn('class="endpoint-label cash-flow"', response.body)
+        self.assertIn("four paths compared", response.body)
+        self.assertIn("Alternative paths use the workbook", response.body)
+        self.assertIn(".chart-wrap", stylesheet)
+        self.assertIn(".chart-side-legend", stylesheet)
+        self.assertIn(".ten-year-series.cash-flow", stylesheet)
+        self.assertIn(".endpoint-label", stylesheet)
+        self.assertIn('value="repairFund"', response.body)
+        self.assertIn("Repair Fund", response.body)
+
+    def test_slice5_repair_fund_layer_renders_live_trace_chart_and_summary(self) -> None:
+        response = handle_post("/ui/evidence", {"activeEvidenceLayer": "repairFund"})
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+        body = response.body
+
+        self.assertIn('data-evidence-layer="repairFund"', body)
+        self.assertIn('id="repair-fund-story-chart"', body)
+        self.assertIn('id="repair-fund-info"', body)
+        self.assertIn("Reserve balance vs. no-reserve surprise cost", body)
+        self.assertIn('class="repair-balance-series"', body)
+        self.assertIn('class="repair-surprise-series"', body)
+        self.assertIn('class="repair-event-marker"', body)
+        self.assertIn('class="chart-legend repair-fund-legend"', body)
+        self.assertIn("Cumulative surprise cost", body)
+        self.assertIn('id="repair-fund-cards"', body)
+        self.assertIn("Dashboard monthly rate (B34)", body)
+        self.assertIn("reserve cap (B21)", body)
+        self.assertIn("Largest single repair", body)
+        self.assertIn('class="fund-tbl" id="repair-fund-table"', body)
+        self.assertIn("repairReservePathTrace", body)
+        self.assertIn("Teaching-only", body)
+        self.assertIn("not workbook-contract", body)
+        self.assertIn("Do not describe this layer as spreadsheet parity", body)
+        self.assertIn('class="layer-copy disclaimer teaching-only"', body)
+        self.assertIn(
+            "repair_reserve_path_trace_workbook_vs_teaching",
+            body,
+        )
+        self.assertIn("Dashboard rate", body)
+        self.assertIn("(B34)", body)
+        self.assertIn("not every year adds new set-aside", body)
+        self.assertNotIn("/mo set aside - balance rebuilds", body)
+        self.assertNotIn("savings rise from monthly deposits", body)
+        self.assertIn(".repair-balance-series", stylesheet)
+        self.assertIn(".repair-surprise-series", stylesheet)
+        self.assertIn(".repair-event-marker", stylesheet)
+        self.assertIn(".layer-copy.disclaimer.teaching-only", stylesheet)
+
+    def test_slice6_solver_decision_step_workbench_disclaimer(self) -> None:
+        response = handle_post("/ui/step", {"activeStep": "decision"})
+        body = response.body
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('id="solver-workbench"', body)
+        self.assertIn("solver-workbench-disclaimer", body)
+        self.assertIn("App-side regression only", body)
+        self.assertIn("not workbook-canonical", body)
+        self.assertIn("fixtureContract.solverCasePolicy", body)
+        self.assertIn("solve_rental_capex", body)
+        self.assertIn(".layer-copy.disclaimer.app-regression", stylesheet)
+
+    def test_slice6_solver_preview_and_what_works_regression_copy(self) -> None:
+        solve = handle_post(
+            "/ui/solve",
+            {
+                "activeStep": "decision",
+                "solverVariable": "rent",
+                "solverMetric": "monthlyCashFlow",
+                "solverTarget": "0",
+            },
+        )
+        self.assertIn("solver-preview-footnote", solve.body)
+        self.assertIn("not workbook-canonical solver output", solve.body)
+
+        what_works = handle_post("/ui/evidence", {"activeEvidenceLayer": "whatWorks"})
+        body = what_works.body
+
+        self.assertIn('class="layer-copy disclaimer app-regression"', body)
+        self.assertIn("app regression solver", body.lower())
+        self.assertIn("not workbook-canonical solver output", body.lower())
+
+    def test_slice5_repair_fund_zero_monthly_reserve_copy(self) -> None:
+        component_overrides = {
+            component["name"]: {"quantity": 0, "age": 0}
+            for component in defaults_payload()["assumptions"]["components"]
+        }
+        response = handle_post(
+            "/ui/evidence",
+            {
+                "activeEvidenceLayer": "repairFund",
+                "componentOverridesJson": json.dumps(component_overrides),
+            },
+        )
+        body = response.body
+
+        self.assertIn("No monthly repair reserve is modeled for this deal.", body)
+        self.assertIn("No monthly reserve is modeled for this deal.", body)
+        self.assertNotIn("/mo set aside", body)
+
+    def test_phase3_slice2_ten_year_sale_bridge_receipts_render_on_calculate(self) -> None:
+        response = handle_post("/ui/calculate", {})
+        summary = response.body.split('id="ten-year-summary"', 1)[1].split(
+            "</section>",
+            1,
+        )[0]
+
+        self.assertIn('data-evidence-layer="tenYear"', response.body)
+        self.assertIn("Future property value (B23)", summary)
+        self.assertIn("Remaining loan balance (B24)", summary)
+        self.assertIn("Cost of sale (B25)", summary)
+        self.assertIn("Net proceeds (B26)", summary)
+        self.assertIn("Accumulated operating cash (L16)", summary)
+        self.assertIn("Reserve returned at sale (L15)", summary)
+        self.assertIn("Source: 10-Year Pro Forma B23", summary)
+        self.assertIn("Source: 10-Year Pro Forma B26", summary)
+        self.assertIn("Formula: B23 − B24 − B25", summary)
+        self.assertIn("Capped reserve balance addback at sale", summary)
+
+    def test_phase3_slice3_ten_year_dual_label_table_and_chart_honesty(self) -> None:
+        response = handle_post("/ui/calculate", {})
+        summary = response.body.split('id="ten-year-summary"', 1)[1].split(
+            "</section>",
+            1,
+        )[0]
+        body = response.body
+
+        self.assertIn("Year-10 ROI (B28)", summary)
+        self.assertIn("Liquidation wealth (L17)", summary)
+        self.assertIn("Excludes reserve returned at sale (L15)", summary)
+        self.assertIn("Includes accumulated reserve (L15) returned at sale", summary)
+        self.assertIn("Liquidation wealth (L17)</th>", body)
+        self.assertIn("Accumulated cash (L16)</th>", body)
+        self.assertIn("Annual reserve contribution</th>", body)
+        self.assertIn("Accumulated reserve (L15)</th>", body)
+        self.assertIn("Future property value (B23)</th>", body)
+        self.assertIn("Remaining loan balance (B24)</th>", body)
+        self.assertIn("Cost of sale (B25)</th>", body)
+        self.assertIn("Net proceeds (B26)</th>", body)
+        self.assertIn("Cash position (L16 + initial)</th>", body)
+        self.assertIn("cash position (l16 + initial)", body.lower())
+        self.assertNotIn("<th>Rental path</th>", body)
+
+    def test_slice3_cash_flow_receipt_renders_engine_rows_and_signed_deductions(self) -> None:
+        response = handle_post("/ui/evidence", {"activeEvidenceLayer": "cashFlow"})
+        receipt = response.body.split('id="cash-flow-receipt">', 1)[1].split(
+            "</div></section>",
+            1,
+        )[0]
+
+        self.assertIn('class="receipt"', response.body)
+        self.assertIn("Expected monthly rent", receipt)
+        self.assertIn("Vacancy rate", receipt)
+        self.assertIn("Usable income", receipt)
+        self.assertIn("Monthly repair fund (snapshot)", receipt)
+        self.assertIn("True monthly cash flow (B40)", receipt)
+        self.assertIn('class="rcpt-row sub"', receipt)
+        self.assertIn('class="rcpt-row total-row"', receipt)
+        self.assertIn('class="rcpt-val ded">-$', receipt)
+        self.assertIn('class="rcpt-eng">actualGrossMonthlyRent</span>', receipt)
+        self.assertIn('class="rcpt-eng">totalMonthlyCapexReserve</span>', receipt)
+        self.assertIn('class="rcpt-val neg">-$', receipt)
+
+    def test_phase3_slice4_cash_flow_snapshot_labels_and_pro_forma_pointer(self) -> None:
+        response = handle_post("/ui/evidence", {"activeEvidenceLayer": "cashFlow"})
+        body = response.body
+
+        self.assertIn('data-evidence-layer="cashFlow"', body)
+        self.assertIn("workbook dashboard snapshot (B40)", body)
+        self.assertIn("accumulatedTrueCashFlow (L16)", body)
+        self.assertIn("10-Year Story", body)
+        self.assertIn("Monthly repair fund (snapshot)", body)
+        self.assertIn("True monthly cash flow (B40)", body)
+
+        trace = calculate_payload({})["result"]["traces"]["cashFlow"]
+        bar_labels = [bar["label"] for bar in trace["graph"]["bars"]]
+        self.assertIn("Repair fund (snapshot)", bar_labels)
+        self.assertIn("True monthly cash flow (B40)", bar_labels)
+
+        guidance = {
+            item["field"]: item
+            for item in workbench_payload()["workbench"]["metricGuidance"]
+        }
+        self.assertEqual(
+            guidance["trueMonthlyCashFlow"]["label"],
+            "True monthly cash flow (B40)",
+        )
+        self.assertIn("workbook B40", guidance["trueMonthlyCashFlow"]["sourceNote"])
+        self.assertIn("L16", guidance["trueMonthlyCashFlow"]["sourceNote"])
+        self.assertEqual(
+            METRIC_GUIDANCE[0][1],
+            "True monthly cash flow (B40)",
+        )
+        self.assertIn("B40", METRIC_SOURCE_NOTES["trueMonthlyCashFlow"])
+
+    def test_slice3_repair_drivers_render_summary_cards_share_bars_and_other_bucket(self) -> None:
+        response = handle_post("/ui/evidence", {"activeEvidenceLayer": "repairDrivers"})
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('id="repair-drivers-cards"', response.body)
+        self.assertIn("Total monthly reserve", response.body)
+        self.assertIn("Components tracked", response.body)
+        self.assertIn("Walkthrough overrides", response.body)
+        self.assertIn('class="drv-tbl" id="repair-drivers-table"', response.body)
+        self.assertIn("<th>Share</th>", response.body)
+        self.assertIn("<th>Remaining</th>", response.body)
+        self.assertIn('class="bar-tr"', response.body)
+        self.assertIn('class="bar-fl" style="width:', response.body)
+        self.assertIn("Other (", response.body)
+        self.assertIn(".drv-tbl", stylesheet)
+        self.assertIn(".bar-tr", stylesheet)
+        self.assertIn(".age-warn", stylesheet)
+
+    def test_slice3_what_works_cards_and_diagnostics_are_layer_local(self) -> None:
+        what_works = handle_post("/ui/evidence", {"activeEvidenceLayer": "whatWorks"})
+        diagnostics = handle_post("/ui/evidence", {"activeEvidenceLayer": "diagnostics"})
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('class="slv-grid" id="threshold-grid"', what_works.body)
+        self.assertIn('class="slv-card threshold-card threshold-warn"', what_works.body)
+        self.assertIn('class="threshold-id">breakEvenRent</p>', what_works.body)
+        self.assertIn("What rent would make monthly cash flow hit zero?", what_works.body)
+        self.assertIn('class="slv-v">$', what_works.body)
+        self.assertIn('class="slv-gap">$', what_works.body)
+        self.assertIn("fixtureContract.solverCasePolicy", what_works.body)
+        self.assertIn("app-side regression", what_works.body.lower())
+        self.assertIn('hx-post="/ui/solve-threshold"', what_works.body)
+
+        self.assertIn('class="diagnostics-drilldown" id="diagnostics-drilldown"', diagnostics.body)
+        self.assertIn("<span>Show table</span>", diagnostics.body)
+        self.assertIn('class="diag-tbl" id="diagnostics-table"', diagnostics.body)
+        self.assertIn("<th>Engine field</th><th>User label</th><th>UI value</th><th>Engine value</th><th>Workbook cell</th>", diagnostics.body)
+        self.assertIn("Dashboard!B6", diagnostics.body)
+        self.assertIn("dashboard.trueMonthlyCashFlow", diagnostics.body)
+        self.assertIn(".slv-grid", stylesheet)
+        self.assertIn(".diagnostics-drilldown", stylesheet)
+        self.assertIn(".diag-tbl", stylesheet)
+
+    def test_phase5_slice6_cash_flow_stability_evidence_layer_renders(self) -> None:
+        response = handle_post("/ui/evidence", {"activeEvidenceLayer": "cashFlowStability"})
+        body = response.body
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('data-evidence-layer="cashFlowStability"', body)
+        self.assertIn("Cash Flow Stability", body)
+        self.assertIn('id="cash-flow-stability-cards"', body)
+        self.assertIn('id="cash-flow-stability-two-path"', body)
+        self.assertIn("Planned reserve path", body)
+        self.assertIn("Debt-shock path", body)
+        self.assertIn('id="cash-flow-stability-refi-table"', body)
+        self.assertIn('id="cash-flow-stability-payment-table"', body)
+        self.assertIn("Not reserving does not remove the repair", body)
+        self.assertIn("App-only resilience", body)
+        self.assertIn("not workbook-contract", body)
+        self.assertIn(".two-path-comparison", stylesheet)
+        self.assertIn(".offer-ready-panel", stylesheet)
+
+    def test_phase5_slice6_offer_ready_panel_on_walkthrough(self) -> None:
+        response = handle_post("/ui/step", {"activeStep": "walkthrough"})
+        body = response.body
+
+        self.assertIn('id="offer-ready-panel"', body)
+        self.assertIn("Offer-ready survival", body)
+        self.assertIn(SURVIVAL_FAIL_HEADLINE, body)
+        self.assertIn("Shock-adjusted cash flow (worst month)", body)
+        self.assertIn("True monthly cash flow (B40)", body)
+        self.assertIn('id="new-walkthrough-button"', body)
+        self.assertIn('hx-post="/ui/new-walkthrough"', body)
+        self.assertIn('name="overlapWarningLatched"', body)
+        self.assertIn('name="overlapWarningAgeSnapshotKey"', body)
+
+    def test_phase5_slice6_offer_ready_hidden_on_other_steps(self) -> None:
+        response = handle_post("/ui/step", {"activeStep": "listing"})
+        self.assertNotIn('id="offer-ready-panel"', response.body)
+
+    def test_phase5_slice6_overlap_latch_display_when_posted(self) -> None:
+        response = handle_post(
+            "/ui/calculate",
+            {
+                "activeStep": "walkthrough",
+                "overlapWarningLatched": "true",
+                "overlapWarningAgeSnapshotKey": '{"componentAges":{},"effectiveAgeYears":0}',
+            },
+        )
+        self.assertIn('id="overlap-warning"', response.body)
+        self.assertIn(OVERLAP_WARNING_SHORT, response.body)
+        self.assertIn('name="overlapWarningLatched" value="true"', response.body)
+
+    def test_phase5_slice6_new_walkthrough_clears_overrides_and_latch(self) -> None:
+        with_override = handle_post(
+            "/ui/override",
+            {
+                "activeStep": "walkthrough",
+                "overrideComponent": "Roofing: Arch. Asphalt (per sq)",
+                "overrideQuantity": "33",
+                "overrideAge": "7",
+            },
+        )
+        self.assertIn("Roofing: Arch. Asphalt (per sq)", with_override.body)
+
+        cleared = handle_post(
+            "/ui/new-walkthrough",
+            {
+                "activeStep": "walkthrough",
+                "overlapWarningLatched": "true",
+                "overlapWarningAgeSnapshotKey": '{"componentAges":{"Roofing: Arch. Asphalt (per sq)":7},"effectiveAgeYears":0}',
+            },
+        )
+        self.assertIn("No active overrides", cleared.body)
+        self.assertIn('name="componentOverridesJson" value="{}"', cleared.body)
+        self.assertIn('name="overlapWarningLatched" value="false"', cleared.body)
+        self.assertIn('name="overlapWarningAgeSnapshotKey" value=""', cleared.body)
+        self.assertNotIn('id="overlap-warning"', cleared.body)
+
+    def test_phase5_slice6_latch_clears_when_age_snapshot_changes(self) -> None:
+        latched = handle_post(
+            "/ui/calculate",
+            {
+                "activeStep": "walkthrough",
+                "overlapWarningLatched": "true",
+                "overlapWarningAgeSnapshotKey": '{"componentAges":{},"effectiveAgeYears":0}',
+            },
+        )
+        self.assertIn('name="overlapWarningLatched" value="true"', latched.body)
+
+        changed = handle_post(
+            "/ui/override",
+            {
+                "activeStep": "walkthrough",
+                "overlapWarningLatched": "true",
+                "overlapWarningAgeSnapshotKey": '{"componentAges":{},"effectiveAgeYears":0}',
+                "overrideComponent": "Roofing: Arch. Asphalt (per sq)",
+                "overrideAge": "12",
+            },
+        )
+        self.assertIn('name="overlapWarningLatched" value="false"', changed.body)
+        self.assertNotIn('id="overlap-warning"', changed.body)
+
+    def test_phase5_slice6_reset_clears_overlap_latch(self) -> None:
+        response = handle_post(
+            "/ui/reset",
+            {
+                "activeStep": "walkthrough",
+                "overlapWarningLatched": "true",
+                "overlapWarningAgeSnapshotKey": '{"componentAges":{},"effectiveAgeYears":0}',
+            },
+        )
+        self.assertIn('name="overlapWarningLatched" value="false"', response.body)
+        self.assertIn('name="overlapWarningAgeSnapshotKey" value=""', response.body)
+
+    def test_resolve_overlap_warning_latch_sets_on_overlap_detected(self) -> None:
+        latched, key = _resolve_overlap_warning_latch(
+            action="calculate",
+            form={
+                "overlapWarningLatched": "false",
+                "overlapWarningAgeSnapshotKey": "",
+            },
+            current_snapshot_key='{"effectiveAgeYears":0,"componentAges":{}}',
+            overlap_detected=True,
+        )
+        self.assertTrue(latched)
+        self.assertEqual(key, '{"effectiveAgeYears":0,"componentAges":{}}')
+
+    def test_phase5_slice6_overlap_latch_sets_on_calculate_when_overlap_detected(self) -> None:
+        payload = calculate_payload({})
+        result = dict(payload["result"])
+        result["overlapDetected"] = True
+        ledger = dict(result["emergencyDebtLedger"])
+        ledger["overlapDetected"] = True
+        ledger["overlapRefinanceYears"] = [3]
+        result["emergencyDebtLedger"] = ledger
+
+        with patch(
+            "capex3.presentation.htmx_state.calculate_payload",
+            return_value={"result": result},
+        ):
+            response = handle_post("/ui/calculate", {"activeStep": "walkthrough"})
+
+        self.assertIn('name="overlapWarningLatched" value="true"', response.body)
+        self.assertIn('id="overlap-warning"', response.body)
+
+    def test_phase5_slice6_latch_survives_non_age_recalculate(self) -> None:
+        response = handle_post(
+            "/ui/calculate",
+            {
+                "activeStep": "walkthrough",
+                "actualGrossMonthlyRent": "4500",
+                "overlapWarningLatched": "true",
+                "overlapWarningAgeSnapshotKey": '{"effectiveAgeYears":0,"componentAges":{}}',
+            },
+        )
+        self.assertIn('name="overlapWarningLatched" value="true"', response.body)
+        self.assertIn('id="overlap-warning"', response.body)
+        self.assertIn('value="4500', response.body)
+
+    def test_phase5_slice6_make_ready_warning_renders_from_ledger_reason(self) -> None:
+        payload = calculate_payload({})
+        result = dict(payload["result"])
+        ledger = dict(result["emergencyDebtLedger"])
+        ledger["makeReadyShortfallFlag"] = True
+        ledger["reason"] = (
+            "Near-term repairs from walkthrough exceed make-ready; not emergency-rate debt."
+        )
+        result["emergencyDebtLedger"] = ledger
+
+        with patch(
+            "capex3.presentation.htmx_state.calculate_payload",
+            return_value={"result": result},
+        ):
+            response = handle_post("/ui/step", {"activeStep": "walkthrough"})
+
+        self.assertIn('id="make-ready-warning"', response.body)
+        self.assertIn("Make-ready shortfall flagged", response.body)
+        self.assertIn("Near-term repairs from walkthrough", response.body)
+
+
+def _field_grid_markup(body: str) -> str:
+    return body.split('<div class="field-grid" id="field-grid">', 1)[1].split(
+        "</div>",
+        1,
+    )[0]
+
+
+def _metric_strip_markup(body: str) -> str:
+    return body.split('data-source-role="metric-strip">', 1)[1].split(
+        "</div>",
+        1,
+    )[0]
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "capex4"
+version = "0.1.0"
+description = "Standalone Rental CapEx app — three-layer Python layout."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"capex3.infrastructure.workbook_assumptions" = ["data/*.json"]
+"capex3.presentation" = ["browser_assets/*.html", "browser_assets/*.css", "browser_assets/vendor/*.js"]

@@ -1,0 +1,16 @@
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+
+# Local tool dependency caches
+node_modules/
+
+# Browser proof scratch output
+tmp/browser-asset-cache-proof/
+tmp/codex-browser-proof/profile/
+tmp/*.log
+
+# Separate clone (kleosr/cursordoctrine) — install via cursordoctrine/INSTALL.md, not vendored here
+cursordoctrine/

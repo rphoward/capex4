@@ -1,0 +1,76 @@
+{
+  "lifespans": [
+    {
+      "name": "Roofing: Arch. Asphalt (per sq)",
+      "lifespan": 18
+    },
+    {
+      "name": "Roofing: Metal Panels (per sq)",
+      "lifespan": 45
+    },
+    {
+      "name": "HVAC: Gas Furnace (80k BTU)",
+      "lifespan": 16
+    },
+    {
+      "name": "HVAC: AC Condenser (3-Ton)",
+      "lifespan": 11
+    },
+    {
+      "name": "HVAC: Full Heat Pump System",
+      "lifespan": 11
+    },
+    {
+      "name": "Plumbing: Gas Water Heater (50g)",
+      "lifespan": 10
+    },
+    {
+      "name": "Plumbing: Elec. Water Heater",
+      "lifespan": 10
+    },
+    {
+      "name": "Plumbing: Int. French Drain (lf)",
+      "lifespan": 18
+    },
+    {
+      "name": "Electrical: 200-Amp Heavy-Up",
+      "lifespan": 40
+    },
+    {
+      "name": "Exterior: Concrete Driveway (sqft)",
+      "lifespan": 18
+    },
+    {
+      "name": "Exterior: 16x7 Double Garage Door",
+      "lifespan": 18
+    },
+    {
+      "name": "Appliance: Kitchen Suite",
+      "lifespan": 10
+    },
+    {
+      "name": "Appliance: Washer & Dryer",
+      "lifespan": 8
+    },
+    {
+      "name": "Finishes: LVP Flooring (sqft)",
+      "lifespan": 12
+    },
+    {
+      "name": "Finishes: Interior Paint (sqft)",
+      "lifespan": 5
+    },
+    {
+      "name": "Ext: Windows/Doors (per unit)",
+      "lifespan": 25
+    },
+    {
+      "name": "Ext: Siding / Paint",
+      "lifespan": 25
+    },
+    {
+      "name": "Plumbing: Bath Surrounds",
+      "lifespan": 15
+    }
+  ]
+}

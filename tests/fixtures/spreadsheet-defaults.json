@@ -1,0 +1,4506 @@
+{
+  "sourceWorkbook": "rental-capex-model-v4-defaults.xlsx",
+  "extractionDate": "2026-05-03",
+  "activeModelSpecNote": "Active modelSpec inputs use the Slice 2 fixed-workbook runtime defaults. Slice 3 dashboard formula outputs and Slice 4 pro forma reserve-state outputs are active assertions. Formula Audit remains captured as legacy diagnostic provenance only and is not an app input/output assertion.",
+  "inputs": {
+    "propertyAddress": "[Type Address Here]",
+    "subregion": "Eastern Foothills Band",
+    "propertyProfile": "Avg Rent: 2-Bedroom",
+    "purchasePrice": 275000,
+    "downPayment": 60000,
+    "downPaymentPercentWhenBlank": 0.2,
+    "actualGrossMonthlyRent": 3800,
+    "annualPropertyTaxes": 6463,
+    "hoaFeesMonthly": 0,
+    "effectiveAgeYears": 0,
+    "moneyMarketApy": 0.038,
+    "conservativeIraApy": 0.08,
+    "appreciationRate": 0.03,
+    "costOfSaleRate": 0.04,
+    "loanInterestRate": 0.065,
+    "loanTermYears": 15,
+    "estimatedClosingCostsPercent": 0.03,
+    "actualClosingCostsOverride": 0,
+    "immediateRehabMakeReady": 500,
+    "capexInflationRate": 0.05,
+    "reserveAccountApy": 0.0425,
+    "annualInsurancePremium": 1800,
+    "monthlyUtilitiesLandlordPaid": 500,
+    "propertyManagementFeePercent": 0,
+    "cleaningMaintenanceAnnual": 0,
+    "legalProfessionalAnnual": 100,
+    "advertisingLeasingAnnual": 100,
+    "componentOverrides": {}
+  },
+  "namedRanges": {
+    "Property_Age": "'10-Year Pro Forma'!$B$6",
+    "CapEx_Inflation_Rate": "Dashboard!$B$19",
+    "Year10_ROI": "'10-Year Pro Forma'!$B$28",
+    "Property_Profile": "Dashboard!$B$4",
+    "Year10_Liquidation_Wealth": "'10-Year Pro Forma'!$L$17",
+    "Quantity_Defaults_Table": "'Quantity Defaults'!$A$1:$E$19",
+    "Total_CapEx_Reserve": "'Sinking Fund Engine'!$K$22",
+    "Quantity_Default_Profile_Headers": "'Quantity Defaults'!$B$1:$D$1",
+    "Override_Status": "'Sinking Fund Engine'!$L$2:$L$19",
+    "Initial_Investment": "'10-Year Pro Forma'!$B$13",
+    "CapEx_Cost_Matrix": "'CapEx Cost Matrix'!$A$1:$F$19",
+    "Reserve_Account_APY": "Dashboard!$B$20",
+    "Dashboard_CapEx_Reserve": "Dashboard!$B$34"
+  },
+  "assumptions": {
+    "subregions": [
+      "Central (Greensburg 15601)",
+      "Western Commuter Band",
+      "Northern Luxury Band",
+      "Eastern Foothills Band",
+      "Southern Industrial Band"
+    ],
+    "profiles": [
+      "Avg Rent: 1-Bedroom",
+      "Avg Rent: 2-Bedroom",
+      "Avg Rent: 3-BR SFH"
+    ],
+    "rentVacancyBaselines": {
+      "Central (Greensburg 15601)": {
+        "Avg Rent: 1-Bedroom": 850,
+        "Avg Rent: 2-Bedroom": 1095,
+        "Avg Rent: 3-BR SFH": 1450,
+        "vacancyRate": 0.06
+      },
+      "Western Commuter Band": {
+        "Avg Rent: 1-Bedroom": 875,
+        "Avg Rent: 2-Bedroom": 1125,
+        "Avg Rent: 3-BR SFH": 1650,
+        "vacancyRate": 0.05
+      },
+      "Northern Luxury Band": {
+        "Avg Rent: 1-Bedroom": 950,
+        "Avg Rent: 2-Bedroom": 1250,
+        "Avg Rent: 3-BR SFH": 1950,
+        "vacancyRate": 0.045
+      },
+      "Eastern Foothills Band": {
+        "Avg Rent: 1-Bedroom": 825,
+        "Avg Rent: 2-Bedroom": 1000,
+        "Avg Rent: 3-BR SFH": 1350,
+        "vacancyRate": 0.075
+      },
+      "Southern Industrial Band": {
+        "Avg Rent: 1-Bedroom": 725,
+        "Avg Rent: 2-Bedroom": 875,
+        "Avg Rent: 3-BR SFH": 1150,
+        "vacancyRate": 0.085
+      }
+    },
+    "components": [
+      {
+        "name": "Roofing: Arch. Asphalt (per sq)",
+        "centralCost": 525,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.15,
+          "Eastern Foothills Band": 0.1,
+          "Southern Industrial Band": -0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 18,
+        "quantities": [
+          12,
+          18,
+          25
+        ]
+      },
+      {
+        "name": "Roofing: Metal Panels (per sq)",
+        "centralCost": 950,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0.05,
+          "Northern Luxury Band": 0.15,
+          "Eastern Foothills Band": 0.15,
+          "Southern Industrial Band": 0
+        },
+        "regionalCostFormula": true,
+        "lifespan": 45,
+        "quantities": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "HVAC: Gas Furnace (80k BTU)",
+        "centralCost": 4500,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.1,
+          "Eastern Foothills Band": 0.08,
+          "Southern Industrial Band": -0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 16,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "HVAC: AC Condenser (3-Ton)",
+        "centralCost": 4800,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.12,
+          "Eastern Foothills Band": 0.08,
+          "Southern Industrial Band": 0
+        },
+        "regionalCostFormula": true,
+        "lifespan": 11,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "HVAC: Full Heat Pump System",
+        "centralCost": 17000,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0.05,
+          "Northern Luxury Band": 0.15,
+          "Eastern Foothills Band": 0.12,
+          "Southern Industrial Band": 0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 11,
+        "quantities": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Plumbing: Gas Water Heater (50g)",
+        "centralCost": 1950,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.1,
+          "Eastern Foothills Band": 0.1,
+          "Southern Industrial Band": -0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 10,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "Plumbing: Elec. Water Heater",
+        "centralCost": 1400,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.1,
+          "Eastern Foothills Band": 0.1,
+          "Southern Industrial Band": -0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 10,
+        "quantities": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Plumbing: Int. French Drain (lf)",
+        "centralCost": 85,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.2,
+          "Eastern Foothills Band": 0.15,
+          "Southern Industrial Band": -0.1
+        },
+        "regionalCostFormula": true,
+        "lifespan": 18,
+        "quantities": [
+          60,
+          90,
+          125
+        ]
+      },
+      {
+        "name": "Electrical: 200-Amp Heavy-Up",
+        "centralCost": 2200,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0.05,
+          "Northern Luxury Band": 0.15,
+          "Eastern Foothills Band": 0.1,
+          "Southern Industrial Band": 0.15
+        },
+        "regionalCostFormula": true,
+        "lifespan": 40,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "Exterior: Concrete Driveway (sqft)",
+        "centralCost": 10.5,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0.05,
+          "Northern Luxury Band": 0.25,
+          "Eastern Foothills Band": 0.15,
+          "Southern Industrial Band": -0.1
+        },
+        "regionalCostFormula": true,
+        "lifespan": 18,
+        "quantities": [
+          200,
+          300,
+          400
+        ]
+      },
+      {
+        "name": "Exterior: 16x7 Double Garage Door",
+        "centralCost": 1850,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.2,
+          "Eastern Foothills Band": 0.1,
+          "Southern Industrial Band": -0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 18,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "Appliance: Kitchen Suite",
+        "centralCost": 2100,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.15,
+          "Eastern Foothills Band": 0.05,
+          "Southern Industrial Band": 0
+        },
+        "regionalCostFormula": true,
+        "lifespan": 10,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "Appliance: Washer & Dryer",
+        "centralCost": 1400,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.15,
+          "Eastern Foothills Band": 0.05,
+          "Southern Industrial Band": 0
+        },
+        "regionalCostFormula": true,
+        "lifespan": 8,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "Finishes: LVP Flooring (sqft)",
+        "centralCost": 4.5,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.2,
+          "Eastern Foothills Band": 0,
+          "Southern Industrial Band": -0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 12,
+        "quantities": [
+          700,
+          900,
+          1200
+        ]
+      },
+      {
+        "name": "Finishes: Interior Paint (sqft)",
+        "centralCost": 2.5,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0.05,
+          "Northern Luxury Band": 0.25,
+          "Eastern Foothills Band": 0.15,
+          "Southern Industrial Band": 0
+        },
+        "regionalCostFormula": true,
+        "lifespan": 5,
+        "quantities": [
+          700,
+          900,
+          1200
+        ]
+      },
+      {
+        "name": "Ext: Windows/Doors (per unit)",
+        "centralCost": 600,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0.05,
+          "Northern Luxury Band": 0.2,
+          "Eastern Foothills Band": 0.15,
+          "Southern Industrial Band": 0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 25,
+        "quantities": [
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "name": "Ext: Siding / Paint",
+        "centralCost": 8000,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0.05,
+          "Northern Luxury Band": 0.25,
+          "Eastern Foothills Band": 0.2,
+          "Southern Industrial Band": 0.05
+        },
+        "regionalCostFormula": true,
+        "lifespan": 25,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "Plumbing: Bath Surrounds",
+        "centralCost": 1500,
+        "regionalAdjustments": {
+          "Western Commuter Band": 0,
+          "Northern Luxury Band": 0.25,
+          "Eastern Foothills Band": 0.1,
+          "Southern Industrial Band": 0
+        },
+        "regionalCostFormula": true,
+        "lifespan": 15,
+        "quantities": [
+          1,
+          1,
+          1
+        ]
+      }
+    ]
+  },
+  "expectedCurrentValues": {
+    "inputs": {
+      "propertyAddress": "[Type Address Here]",
+      "subregion": "Eastern Foothills Band",
+      "propertyProfile": "Avg Rent: 2-Bedroom",
+      "purchasePrice": 275000,
+      "downPayment": 60000,
+      "downPaymentPercentWhenBlank": 0.2,
+      "actualGrossMonthlyRent": 3800,
+      "annualPropertyTaxes": 6463,
+      "hoaFeesMonthly": 0,
+      "effectiveAgeYears": 0,
+      "moneyMarketApy": 0.038,
+      "conservativeIraApy": 0.08,
+      "appreciationRate": 0.03,
+      "costOfSaleRate": 0.04,
+      "loanInterestRate": 0.065,
+      "loanTermYears": 15,
+      "estimatedClosingCostsPercent": 0.03,
+      "actualClosingCostsOverride": 0,
+      "immediateRehabMakeReady": 500,
+      "capexInflationRate": 0.05,
+      "reserveAccountApy": 0.0425,
+      "annualInsurancePremium": 1800,
+      "monthlyUtilitiesLandlordPaid": 500,
+      "propertyManagementFeePercent": 0,
+      "cleaningMaintenanceAnnual": 0,
+      "legalProfessionalAnnual": 100,
+      "advertisingLeasingAnnual": 100,
+      "componentOverrides": {}
+    },
+    "outputs": {
+      "effectiveGrossIncomeMonthly": 3515,
+      "totalMonthlyFixedExpenses": 1205.25,
+      "totalMonthlyCapexReserve": 554.3454780052055,
+      "netOperatingIncomeMonthly": 1755.4045219947945,
+      "capRate": 0.07659947005068195,
+      "monthlyMortgagePI": 1872.880835389336,
+      "trueMonthlyCashFlow": -117.47631339454142,
+      "totalInitialInvestment": 68750,
+      "cashOnCashReturn": -0.020504956519774502,
+      "activeOverridesCount": 0,
+      "futurePropertyValueYear10": 369577.0043196336,
+      "remainingLoanBalanceYear10": 95720.46651453829,
+      "costOfSaleYear10": 14783.080172785343,
+      "netProceedsYear10": 259073.45763230996,
+      "year10Roi": 3.240601021,
+      "year10AnnualizedRoi": 0.15542761043655862,
+      "targetCapExReserve": 16630.36434,
+      "debtServiceCoverageRatio": 0.9372750732,
+      "yearOneTotalReturnOnEquity": 0.1068756188,
+      "breakevenGrossRent": 3927.00142,
+      "rentToValueRatio": 0.01381818182
+    },
+    "sinkingFundRows": [
+      {
+        "component": "Roofing: Arch. Asphalt (per sq)",
+        "localUnitCost": 577.5,
+        "defaultQuantity": 18,
+        "effectiveQuantity": 18,
+        "swpaLifespan": 18,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 18,
+        "futureCost": 25016.806934218836,
+        "monthlyReserve": 77.30722583820211,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Roofing: Metal Panels (per sq)",
+        "localUnitCost": 1092.5,
+        "defaultQuantity": 0,
+        "effectiveQuantity": 0,
+        "swpaLifespan": 45,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 45,
+        "futureCost": 0,
+        "monthlyReserve": 0,
+        "overrideStatus": ""
+      },
+      {
+        "component": "HVAC: Gas Furnace (80k BTU)",
+        "localUnitCost": 4860,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 16,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 16,
+        "futureCost": 10608.770499536213,
+        "monthlyReserve": 38.674651850157204,
+        "overrideStatus": ""
+      },
+      {
+        "component": "HVAC: AC Condenser (3-Ton)",
+        "localUnitCost": 5184,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 11,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 11,
+        "futureCost": 8866.399232474972,
+        "monthlyReserve": 52.80444401183328,
+        "overrideStatus": ""
+      },
+      {
+        "component": "HVAC: Full Heat Pump System",
+        "localUnitCost": 19040,
+        "defaultQuantity": 0,
+        "effectiveQuantity": 0,
+        "swpaLifespan": 11,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 11,
+        "futureCost": 0,
+        "monthlyReserve": 0,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Plumbing: Gas Water Heater (50g)",
+        "localUnitCost": 2145,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 10,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 10,
+        "futureCost": 3493.978974437613,
+        "monthlyReserve": 23.416949905522596,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Plumbing: Elec. Water Heater",
+        "localUnitCost": 1540.0000000000002,
+        "defaultQuantity": 0,
+        "effectiveQuantity": 0,
+        "swpaLifespan": 10,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 10,
+        "futureCost": 0,
+        "monthlyReserve": 0,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Plumbing: Int. French Drain (lf)",
+        "localUnitCost": 97.74999999999999,
+        "defaultQuantity": 90,
+        "effectiveQuantity": 90,
+        "swpaLifespan": 18,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 18,
+        "futureCost": 21172.23270839732,
+        "monthlyReserve": 65.42667814445244,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Electrical: 200-Amp Heavy-Up",
+        "localUnitCost": 2420,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 40,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 40,
+        "futureCost": 17036.77268334167,
+        "monthlyReserve": 13.536317844872745,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Exterior: Concrete Driveway (sqft)",
+        "localUnitCost": 12.075,
+        "defaultQuantity": 300,
+        "effectiveQuantity": 300,
+        "swpaLifespan": 18,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 18,
+        "futureCost": 8717.978174045958,
+        "monthlyReserve": 26.940396883009832,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Exterior: 16x7 Double Garage Door",
+        "localUnitCost": 2035.0000000000002,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 18,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 18,
+        "futureCost": 4897.47014056136,
+        "monthlyReserve": 15.134218814886129,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Appliance: Kitchen Suite",
+        "localUnitCost": 2205,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 10,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 10,
+        "futureCost": 3591.71265204426,
+        "monthlyReserve": 24.071969483299455,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Appliance: Washer & Dryer",
+        "localUnitCost": 1470,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 8,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 8,
+        "futureCost": 2171.8595023699227,
+        "monthlyReserve": 19.03471269452279,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Finishes: LVP Flooring (sqft)",
+        "localUnitCost": 4.5,
+        "defaultQuantity": 900,
+        "effectiveQuantity": 900,
+        "swpaLifespan": 12,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 12,
+        "futureCost": 7273.218120389627,
+        "monthlyReserve": 38.80633642378316,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Finishes: Interior Paint (sqft)",
+        "localUnitCost": 2.875,
+        "defaultQuantity": 900,
+        "effectiveQuantity": 900,
+        "swpaLifespan": 5,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 5,
+        "futureCost": 3302.378542968751,
+        "monthlyReserve": 49.49568351531227,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Ext: Windows/Doors (per unit)",
+        "localUnitCost": 690,
+        "defaultQuantity": 8,
+        "effectiveQuantity": 8,
+        "swpaLifespan": 25,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 25,
+        "futureCost": 18692.679273764625,
+        "monthlyReserve": 35.06212662549375,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Ext: Siding / Paint",
+        "localUnitCost": 9600,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 25,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 25,
+        "futureCost": 32509.00743263413,
+        "monthlyReserve": 60.977611522597826,
+        "overrideStatus": ""
+      },
+      {
+        "component": "Plumbing: Bath Surrounds",
+        "localUnitCost": 1650.0000000000002,
+        "defaultQuantity": 1,
+        "effectiveQuantity": 1,
+        "swpaLifespan": 15,
+        "defaultAge": 0,
+        "effectiveAge": 0,
+        "remainingLife": 15,
+        "futureCost": 3430.231496028759,
+        "monthlyReserve": 13.656154447259857,
+        "overrideStatus": ""
+      }
+    ],
+    "proForma": [
+      {
+        "year": 0,
+        "accumulatedTrueCashFlow": 0,
+        "realEstateLiquidationWealth": 68750,
+        "moneyMarketComparison": 68750,
+        "conservativeIraComparison": 68750,
+        "annualCapexContribution": 0,
+        "accumulatedCapexReserve": 0
+      },
+      {
+        "year": 1,
+        "accumulatedTrueCashFlow": -1409.715761,
+        "realEstateLiquidationWealth": 64267.69879,
+        "moneyMarketComparison": 71362.5,
+        "conservativeIraComparison": 74250,
+        "futurePropertyValue": 283250,
+        "remainingLoanBalance": 206242.5854495755,
+        "costOfSale": 11330,
+        "netProceeds": 65677.4145504245,
+        "annualCapexContribution": 6652.145736,
+        "accumulatedCapexReserve": 6652.145736
+      },
+      {
+        "year": 2,
+        "accumulatedTrueCashFlow": -2819.431521,
+        "realEstateLiquidationWealth": 80359.49785,
+        "moneyMarketComparison": 74074.27500000001,
+        "conservativeIraComparison": 80190,
+        "futurePropertyValue": 291747.5,
+        "remainingLoanBalance": 196898.67062795503,
+        "costOfSale": 11669.9,
+        "netProceeds": 83178.92937204498,
+        "annualCapexContribution": 6652.145736,
+        "accumulatedCapexReserve": 13587.00767
+      },
+      {
+        "year": 3,
+        "accumulatedTrueCashFlow": -4229.147282,
+        "realEstateLiquidationWealth": 97321.80419,
+        "moneyMarketComparison": 76889.09745,
+        "conservativeIraComparison": 86605.20000000001,
+        "futurePropertyValue": 300499.925,
+        "remainingLoanBalance": 186928.97652577664,
+        "costOfSale": 12019.997,
+        "netProceeds": 101550.95147422334,
+        "annualCapexContribution": 6652.145736,
+        "accumulatedCapexReserve": 16630.36434
+      },
+      {
+        "year": 4,
+        "accumulatedTrueCashFlow": 1013.282693,
+        "realEstateLiquidationWealth": 121856.015,
+        "moneyMarketComparison": 79810.88315310002,
+        "conservativeIraComparison": 93533.61600000002,
+        "futurePropertyValue": 309514.92275,
+        "remainingLoanBalance": 176291.5935456765,
+        "costOfSale": 12380.596910000002,
+        "netProceeds": 120842.73229432352,
+        "annualCapexContribution": 0,
+        "accumulatedCapexReserve": 16630.36434
+      },
+      {
+        "year": 5,
+        "accumulatedTrueCashFlow": 6255.712668,
+        "realEstateLiquidationWealth": 147362.263,
+        "moneyMarketComparison": 82843.69671291781,
+        "conservativeIraComparison": 101016.30528000004,
+        "futurePropertyValue": 318800.3704325,
+        "remainingLoanBalance": 164941.80532693875,
+        "costOfSale": 12752.014817300002,
+        "netProceeds": 141106.5502882613,
+        "annualCapexContribution": 0,
+        "accumulatedCapexReserve": 16630.36434
+      },
+      {
+        "year": 6,
+        "accumulatedTrueCashFlow": 11498.14264,
+        "realEstateLiquidationWealth": 173896.0482,
+        "moneyMarketComparison": 85991.75718800869,
+        "conservativeIraComparison": 109097.60970240003,
+        "futurePropertyValue": 328364.38154547504,
+        "remainingLoanBalance": 152831.90077135546,
+        "costOfSale": 13134.575261819002,
+        "netProceeds": 162397.90551230058,
+        "annualCapexContribution": 0,
+        "accumulatedCapexReserve": 16630.36434
+      },
+      {
+        "year": 7,
+        "accumulatedTrueCashFlow": 16740.57262,
+        "realEstateLiquidationWealth": 201516.2996,
+        "moneyMarketComparison": 89259.44396115303,
+        "conservativeIraComparison": 117825.41847859207,
+        "futurePropertyValue": 338215.3129918393,
+        "remainingLoanBalance": 139910.9734801107,
+        "costOfSale": 13528.612519673572,
+        "netProceeds": 184775.72699205505,
+        "annualCapexContribution": 0,
+        "accumulatedCapexReserve": 16630.36434
+      },
+      {
+        "year": 8,
+        "accumulatedTrueCashFlow": 21983.00259,
+        "realEstateLiquidationWealth": 230285.5963,
+        "moneyMarketComparison": 92651.30283167685,
+        "conservativeIraComparison": 127251.45195687942,
+        "futurePropertyValue": 348361.7723815945,
+        "remainingLoanBalance": 126124.70775858106,
+        "costOfSale": 13934.470895263781,
+        "netProceeds": 208302.59372774969,
+        "annualCapexContribution": 0,
+        "accumulatedCapexReserve": 16630.36434
+      },
+      {
+        "year": 9,
+        "accumulatedTrueCashFlow": 27225.43257,
+        "realEstateLiquidationWealth": 260270.4028,
+        "moneyMarketComparison": 96172.05233928056,
+        "conservativeIraComparison": 137431.5681134298,
+        "futurePropertyValue": 358812.62555304234,
+        "remainingLoanBalance": 111415.15028948139,
+        "costOfSale": 14352.505022121693,
+        "netProceeds": 233044.97024143927,
+        "annualCapexContribution": 0,
+        "accumulatedCapexReserve": 16630.36434
+      },
+      {
+        "year": 10,
+        "accumulatedTrueCashFlow": 32467.86255,
+        "realEstateLiquidationWealth": 308171.6845,
+        "moneyMarketComparison": 99826.59032817323,
+        "conservativeIraComparison": 148426.0935625042,
+        "futurePropertyValue": 369577.0043196336,
+        "remainingLoanBalance": 95720.46651453829,
+        "costOfSale": 14783.080172785343,
+        "netProceeds": 259073.45763230996,
+        "annualCapexContribution": 0,
+        "accumulatedCapexReserve": 16630.36434
+      }
+    ]
+  },
+  "workbookContract": {
+    "sourceWorkbook": "rental-capex-model-v4-defaults.xlsx",
+    "extractionDate": "2026-05-03",
+    "extractionAuthority": {
+      "kind": "raw-xlsx-package",
+      "script": "analysis/parity-v2/extract_xlsx_inventory.py",
+      "artifacts": [
+        "analysis/parity-v2/xlsx-inventory-summary.json",
+        "analysis/parity-v2/xlsx-formulas.csv",
+        "analysis/parity-v2/xlsx-non-empty-cells.csv",
+        "analysis/parity-v2/sheet-Dashboard.json",
+        "analysis/parity-v2/sheet-Sinking_Fund_Engine.json",
+        "analysis/parity-v2/sheet-10-Year_Pro_Forma.json",
+        "analysis/parity-v2/sheet-Formula_Audit.json"
+      ],
+      "workbookSha256": "ec628c1c119d397f012b0ebbbf57954e29789c315b76de040aa574c1a1337791",
+      "note": "The artifact-tool workbook import still fails on person/comment metadata; raw package extraction is the Slice 1 authority and does not mutate workbook bytes."
+    },
+    "activeModelSpecNote": "Active modelSpec inputs use the Slice 2 fixed-workbook runtime defaults. Slice 3 dashboard formula outputs and Slice 4 pro forma reserve-state outputs are active assertions. Formula Audit remains captured as legacy diagnostic provenance only and is not an app input/output assertion.",
+    "sheets": [
+      "10-Year Pro Forma",
+      "Dashboard",
+      "Sinking Fund Engine",
+      "CapEx Cost Matrix",
+      "Rent & Vacancy Baselines",
+      "SWPA Actuarial Lifespans",
+      "Quantity Defaults",
+      "Formula Audit"
+    ],
+    "namedRanges": {
+      "Property_Age": "'10-Year Pro Forma'!$B$6",
+      "CapEx_Inflation_Rate": "Dashboard!$B$19",
+      "Year10_ROI": "'10-Year Pro Forma'!$B$28",
+      "Property_Profile": "Dashboard!$B$4",
+      "Year10_Liquidation_Wealth": "'10-Year Pro Forma'!$L$17",
+      "Quantity_Defaults_Table": "'Quantity Defaults'!$A$1:$E$19",
+      "Total_CapEx_Reserve": "'Sinking Fund Engine'!$K$22",
+      "Quantity_Default_Profile_Headers": "'Quantity Defaults'!$B$1:$D$1",
+      "Override_Status": "'Sinking Fund Engine'!$L$2:$L$19",
+      "Initial_Investment": "'10-Year Pro Forma'!$B$13",
+      "CapEx_Cost_Matrix": "'CapEx Cost Matrix'!$A$1:$F$19",
+      "Reserve_Account_APY": "Dashboard!$B$20",
+      "Dashboard_CapEx_Reserve": "Dashboard!$B$34"
+    },
+    "defaultInputs": {
+      "propertyAddress": "[Type Address Here]",
+      "subregion": "Eastern Foothills Band",
+      "propertyProfile": "Avg Rent: 2-Bedroom",
+      "purchasePrice": 275000,
+      "downPayment": 60000,
+      "actualGrossMonthlyRent": 3800,
+      "annualPropertyTaxes": 6463,
+      "hoaFeesMonthly": 0,
+      "effectiveAgeYears": 0,
+      "moneyMarketApy": 0.038,
+      "conservativeIraApy": 0.08,
+      "appreciationRate": 0.03,
+      "costOfSaleRate": 0.04,
+      "loanInterestRate": 0.065,
+      "loanTermYears": 15,
+      "estimatedClosingCostsPercent": 0.03,
+      "actualClosingCostsOverride": 0,
+      "immediateRehabMakeReady": 500,
+      "capexInflationRate": 0.05,
+      "reserveAccountApy": 0.0425,
+      "annualInsurancePremium": 1800,
+      "monthlyUtilitiesLandlordPaid": 500,
+      "propertyManagementFeePercent": 0,
+      "cleaningMaintenanceAnnual": 0,
+      "legalProfessionalAnnual": 100,
+      "advertisingLeasingAnnual": 100,
+      "componentOverrides": {}
+    },
+    "defaultInputSources": {
+      "propertyAddress": "Dashboard!B2",
+      "subregion": "Dashboard!B3",
+      "propertyProfile": "Dashboard!B4",
+      "purchasePrice": "'10-Year Pro Forma'!B1",
+      "downPayment": "'10-Year Pro Forma'!B2",
+      "actualGrossMonthlyRent": "'10-Year Pro Forma'!B3",
+      "annualPropertyTaxes": "'10-Year Pro Forma'!B4",
+      "hoaFeesMonthly": "'10-Year Pro Forma'!B5",
+      "effectiveAgeYears": "'10-Year Pro Forma'!B6",
+      "moneyMarketApy": "'10-Year Pro Forma'!B7",
+      "conservativeIraApy": "'10-Year Pro Forma'!B8",
+      "appreciationRate": "'10-Year Pro Forma'!B9",
+      "costOfSaleRate": "'10-Year Pro Forma'!B10",
+      "loanInterestRate": "Dashboard!B7",
+      "loanTermYears": "Dashboard!B8",
+      "estimatedClosingCostsPercent": "Dashboard!B10",
+      "actualClosingCostsOverride": "Dashboard!B11",
+      "immediateRehabMakeReady": "Dashboard!B12",
+      "capexInflationRate": "Dashboard!B19",
+      "reserveAccountApy": "Dashboard!B20",
+      "annualInsurancePremium": "Dashboard!B24",
+      "monthlyUtilitiesLandlordPaid": "Dashboard!B25",
+      "propertyManagementFeePercent": "Dashboard!B26",
+      "cleaningMaintenanceAnnual": "Dashboard!B27",
+      "legalProfessionalAnnual": "Dashboard!B28",
+      "advertisingLeasingAnnual": "Dashboard!B29",
+      "componentOverrides": "No active overrides in fixed-workbook default state"
+    },
+    "sourceTables": {
+      "rentVacancyBaselines": {
+        "range": "'Rent & Vacancy Baselines'!A1:F6",
+        "rows": [
+          {
+            "row": 1,
+            "cells": {
+              "A": {
+                "source": "'Rent & Vacancy Baselines'!A1",
+                "value": "Subregion"
+              },
+              "B": {
+                "source": "'Rent & Vacancy Baselines'!B1",
+                "value": "Avg Rent: 1-Bedroom"
+              },
+              "C": {
+                "source": "'Rent & Vacancy Baselines'!C1",
+                "value": "Avg Rent: 2-Bedroom"
+              },
+              "D": {
+                "source": "'Rent & Vacancy Baselines'!D1",
+                "value": "Avg Rent: 3-BR SFH"
+              },
+              "E": {
+                "source": "'Rent & Vacancy Baselines'!E1",
+                "value": "Est. SFH Price/SqFt"
+              },
+              "F": {
+                "source": "'Rent & Vacancy Baselines'!F1",
+                "value": "Est. Vacancy Rate"
+              }
+            }
+          },
+          {
+            "row": 2,
+            "cells": {
+              "A": {
+                "source": "'Rent & Vacancy Baselines'!A2",
+                "value": "Central (Greensburg 15601)"
+              },
+              "B": {
+                "source": "'Rent & Vacancy Baselines'!B2",
+                "value": 850
+              },
+              "C": {
+                "source": "'Rent & Vacancy Baselines'!C2",
+                "value": 1095
+              },
+              "D": {
+                "source": "'Rent & Vacancy Baselines'!D2",
+                "value": 1450
+              },
+              "E": {
+                "source": "'Rent & Vacancy Baselines'!E2",
+                "value": "$1.10 - $1.25"
+              },
+              "F": {
+                "source": "'Rent & Vacancy Baselines'!F2",
+                "value": 0.06
+              }
+            }
+          },
+          {
+            "row": 3,
+            "cells": {
+              "A": {
+                "source": "'Rent & Vacancy Baselines'!A3",
+                "value": "Western Commuter Band"
+              },
+              "B": {
+                "source": "'Rent & Vacancy Baselines'!B3",
+                "value": 875
+              },
+              "C": {
+                "source": "'Rent & Vacancy Baselines'!C3",
+                "value": 1125
+              },
+              "D": {
+                "source": "'Rent & Vacancy Baselines'!D3",
+                "value": 1650
+              },
+              "E": {
+                "source": "'Rent & Vacancy Baselines'!E3",
+                "value": "$1.25 - $1.40"
+              },
+              "F": {
+                "source": "'Rent & Vacancy Baselines'!F3",
+                "value": 0.05
+              }
+            }
+          },
+          {
+            "row": 4,
+            "cells": {
+              "A": {
+                "source": "'Rent & Vacancy Baselines'!A4",
+                "value": "Northern Luxury Band"
+              },
+              "B": {
+                "source": "'Rent & Vacancy Baselines'!B4",
+                "value": 950
+              },
+              "C": {
+                "source": "'Rent & Vacancy Baselines'!C4",
+                "value": 1250
+              },
+              "D": {
+                "source": "'Rent & Vacancy Baselines'!D4",
+                "value": 1950
+              },
+              "E": {
+                "source": "'Rent & Vacancy Baselines'!E4",
+                "value": "$1.45 - $1.65"
+              },
+              "F": {
+                "source": "'Rent & Vacancy Baselines'!F4",
+                "value": 0.045
+              }
+            }
+          },
+          {
+            "row": 5,
+            "cells": {
+              "A": {
+                "source": "'Rent & Vacancy Baselines'!A5",
+                "value": "Eastern Foothills Band"
+              },
+              "B": {
+                "source": "'Rent & Vacancy Baselines'!B5",
+                "value": 825
+              },
+              "C": {
+                "source": "'Rent & Vacancy Baselines'!C5",
+                "value": 1000
+              },
+              "D": {
+                "source": "'Rent & Vacancy Baselines'!D5",
+                "value": 1350
+              },
+              "E": {
+                "source": "'Rent & Vacancy Baselines'!E5",
+                "value": "$0.95 - $1.15"
+              },
+              "F": {
+                "source": "'Rent & Vacancy Baselines'!F5",
+                "value": 0.075
+              }
+            }
+          },
+          {
+            "row": 6,
+            "cells": {
+              "A": {
+                "source": "'Rent & Vacancy Baselines'!A6",
+                "value": "Southern Industrial Band"
+              },
+              "B": {
+                "source": "'Rent & Vacancy Baselines'!B6",
+                "value": 725
+              },
+              "C": {
+                "source": "'Rent & Vacancy Baselines'!C6",
+                "value": 875
+              },
+              "D": {
+                "source": "'Rent & Vacancy Baselines'!D6",
+                "value": 1150
+              },
+              "E": {
+                "source": "'Rent & Vacancy Baselines'!E6",
+                "value": "$0.80 - $0.95"
+              },
+              "F": {
+                "source": "'Rent & Vacancy Baselines'!F6",
+                "value": 0.085
+              }
+            }
+          }
+        ]
+      },
+      "capexCostMatrix": {
+        "range": "'CapEx Cost Matrix'!A1:F19",
+        "rows": [
+          {
+            "row": 1,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A1",
+                "value": "CapEx Component"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B1",
+                "value": "Central Baseline (Greensburg)"
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C1",
+                "value": "Western Commuter Band"
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D1",
+                "value": "Northern Luxury Band"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E1",
+                "value": "Eastern Foothills Band"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F1",
+                "value": "Southern Industrial Band"
+              }
+            }
+          },
+          {
+            "row": 2,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A2",
+                "value": "Roofing: Arch. Asphalt (per sq)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B2",
+                "value": 525
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C2",
+                "value": 0,
+                "formula": "+ 0%"
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D2",
+                "value": 0.15,
+                "formula": "+ 15%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E2",
+                "value": 0.1,
+                "formula": "+ 10%"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F2",
+                "value": -0.05
+              }
+            }
+          },
+          {
+            "row": 3,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A3",
+                "value": "Roofing: Metal Panels (per sq)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B3",
+                "value": 950
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C3",
+                "value": 0.05,
+                "formula": "+ 5%"
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D3",
+                "value": 0.15
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E3",
+                "value": 0.15,
+                "formula": "+ 15%"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F3",
+                "value": 0,
+                "formula": "+ 0%"
+              }
+            }
+          },
+          {
+            "row": 4,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A4",
+                "value": "HVAC: Gas Furnace (80k BTU)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B4",
+                "value": 4500
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C4",
+                "value": 0,
+                "formula": "+ 0%"
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D4",
+                "value": 0.1,
+                "formula": "+ 10%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E4",
+                "value": 0.08,
+                "formula": "+ 8%"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F4",
+                "value": -0.05
+              }
+            }
+          },
+          {
+            "row": 5,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A5",
+                "value": "HVAC: AC Condenser (3-Ton)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B5",
+                "value": 4800
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C5",
+                "value": 0
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D5",
+                "value": 0.12,
+                "formula": "+ 12%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E5",
+                "value": 0.08
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F5",
+                "value": 0,
+                "formula": "+ 0%"
+              }
+            }
+          },
+          {
+            "row": 6,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A6",
+                "value": "HVAC: Full Heat Pump System"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B6",
+                "value": 17000
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C6",
+                "value": 0.05,
+                "formula": "+ 5%"
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D6",
+                "value": 0.15,
+                "formula": "+ 15%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E6",
+                "value": 0.12,
+                "formula": "+ 12%"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F6",
+                "value": 0.05,
+                "formula": "+ 5%"
+              }
+            }
+          },
+          {
+            "row": 7,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A7",
+                "value": "Plumbing: Gas Water Heater (50g)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B7",
+                "value": 1950
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C7",
+                "value": 0,
+                "formula": "+ 0%"
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D7",
+                "value": 0.1,
+                "formula": "+ 10%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E7",
+                "value": 0.1
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F7",
+                "value": -0.05
+              }
+            }
+          },
+          {
+            "row": 8,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A8",
+                "value": "Plumbing: Elec. Water Heater"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B8",
+                "value": 1400
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C8",
+                "value": 0
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D8",
+                "value": 0.1,
+                "formula": "+ 10%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E8",
+                "value": 0.1
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F8",
+                "value": -0.05
+              }
+            }
+          },
+          {
+            "row": 9,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A9",
+                "value": "Plumbing: Int. French Drain (lf)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B9",
+                "value": 85
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C9",
+                "value": 0
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D9",
+                "value": 0.2,
+                "formula": "+ 20%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E9",
+                "value": 0.15,
+                "formula": "+ 15%"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F9",
+                "value": -0.1
+              }
+            }
+          },
+          {
+            "row": 10,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A10",
+                "value": "Electrical: 200-Amp Heavy-Up"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B10",
+                "value": 2200
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C10",
+                "value": 0.05,
+                "formula": "+ 5%"
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D10",
+                "value": 0.15,
+                "formula": "+ 15%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E10",
+                "value": 0.1,
+                "formula": "+ 10%"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F10",
+                "value": 0.15
+              }
+            }
+          },
+          {
+            "row": 11,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A11",
+                "value": "Exterior: Concrete Driveway (sqft)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B11",
+                "value": 10.5
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C11",
+                "value": 0.05
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D11",
+                "value": 0.25,
+                "formula": "+ 25%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E11",
+                "value": 0.15,
+                "formula": "+ 15%"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F11",
+                "value": -0.1
+              }
+            }
+          },
+          {
+            "row": 12,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A12",
+                "value": "Exterior: 16x7 Double Garage Door"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B12",
+                "value": 1850
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C12",
+                "value": 0,
+                "formula": "+ 0%"
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D12",
+                "value": 0.2,
+                "formula": "+ 20%"
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E12",
+                "value": 0.1,
+                "formula": "+ 10%"
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F12",
+                "value": -0.05
+              }
+            }
+          },
+          {
+            "row": 13,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A13",
+                "value": "Appliance: Kitchen Suite"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B13",
+                "value": 2100
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C13",
+                "value": 0
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D13",
+                "value": 0.15
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E13",
+                "value": 0.05
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F13",
+                "value": 0
+              }
+            }
+          },
+          {
+            "row": 14,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A14",
+                "value": "Appliance: Washer & Dryer"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B14",
+                "value": 1400
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C14",
+                "value": 0
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D14",
+                "value": 0.15
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E14",
+                "value": 0.05
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F14",
+                "value": 0
+              }
+            }
+          },
+          {
+            "row": 15,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A15",
+                "value": "Finishes: LVP Flooring (sqft)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B15",
+                "value": 4.5
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C15",
+                "value": 0
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D15",
+                "value": 0.2
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E15",
+                "value": 0
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F15",
+                "value": -0.05
+              }
+            }
+          },
+          {
+            "row": 16,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A16",
+                "value": "Finishes: Interior Paint (sqft)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B16",
+                "value": 2.5
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C16",
+                "value": 0.05
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D16",
+                "value": 0.25
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E16",
+                "value": 0.15
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F16",
+                "value": 0
+              }
+            }
+          },
+          {
+            "row": 17,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A17",
+                "value": "Ext: Windows/Doors (per unit)"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B17",
+                "value": 600
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C17",
+                "value": 0.05
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D17",
+                "value": 0.2
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E17",
+                "value": 0.15
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F17",
+                "value": 0.05
+              }
+            }
+          },
+          {
+            "row": 18,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A18",
+                "value": "Ext: Siding / Paint"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B18",
+                "value": 8000
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C18",
+                "value": 0.05
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D18",
+                "value": 0.25
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E18",
+                "value": 0.2
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F18",
+                "value": 0.05
+              }
+            }
+          },
+          {
+            "row": 19,
+            "cells": {
+              "A": {
+                "source": "'CapEx Cost Matrix'!A19",
+                "value": "Plumbing: Bath Surrounds"
+              },
+              "B": {
+                "source": "'CapEx Cost Matrix'!B19",
+                "value": 1500
+              },
+              "C": {
+                "source": "'CapEx Cost Matrix'!C19",
+                "value": 0
+              },
+              "D": {
+                "source": "'CapEx Cost Matrix'!D19",
+                "value": 0.25
+              },
+              "E": {
+                "source": "'CapEx Cost Matrix'!E19",
+                "value": 0.1
+              },
+              "F": {
+                "source": "'CapEx Cost Matrix'!F19",
+                "value": 0
+              }
+            }
+          }
+        ]
+      },
+      "quantityDefaults": {
+        "range": "'Quantity Defaults'!A1:E19",
+        "rows": [
+          {
+            "row": 1,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A1",
+                "value": "Component"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B1",
+                "value": "Avg Rent: 1-Bedroom"
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C1",
+                "value": "Avg Rent: 2-Bedroom"
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D1",
+                "value": "Avg Rent: 3-BR SFH"
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E1",
+                "value": "Note"
+              }
+            }
+          },
+          {
+            "row": 2,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A2",
+                "value": "Roofing: Arch. Asphalt (per sq)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B2",
+                "value": 12
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C2",
+                "value": 18
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D2",
+                "value": 25
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E2",
+                "value": "Roof squares scale by bedroom/property size; 3BR keeps current 25 square default."
+              }
+            }
+          },
+          {
+            "row": 3,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A3",
+                "value": "Roofing: Metal Panels (per sq)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B3",
+                "value": 0
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C3",
+                "value": 0
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D3",
+                "value": 0
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E3",
+                "value": "Alternative roof material; default off."
+              }
+            }
+          },
+          {
+            "row": 4,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A4",
+                "value": "HVAC: Gas Furnace (80k BTU)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B4",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C4",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D4",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E4",
+                "value": "Unchanged pending better system-type defaults."
+              }
+            }
+          },
+          {
+            "row": 5,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A5",
+                "value": "HVAC: AC Condenser (3-Ton)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B5",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C5",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D5",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E5",
+                "value": "Unchanged pending better system-type defaults."
+              }
+            }
+          },
+          {
+            "row": 6,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A6",
+                "value": "HVAC: Full Heat Pump System"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B6",
+                "value": 0
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C6",
+                "value": 0
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D6",
+                "value": 0
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E6",
+                "value": "Alternative HVAC system; default off."
+              }
+            }
+          },
+          {
+            "row": 7,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A7",
+                "value": "Plumbing: Gas Water Heater (50g)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B7",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C7",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D7",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E7",
+                "value": "Unchanged pending utility/system defaults."
+              }
+            }
+          },
+          {
+            "row": 8,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A8",
+                "value": "Plumbing: Elec. Water Heater"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B8",
+                "value": 0
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C8",
+                "value": 0
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D8",
+                "value": 0
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E8",
+                "value": "Alternative water heater; default off."
+              }
+            }
+          },
+          {
+            "row": 9,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A9",
+                "value": "Plumbing: Int. French Drain (lf)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B9",
+                "value": 60
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C9",
+                "value": 90
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D9",
+                "value": 125
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E9",
+                "value": "Scaled from 50-60 LF attached/1BR and 120-130 LF 3BR foundation baseline."
+              }
+            }
+          },
+          {
+            "row": 10,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A10",
+                "value": "Electrical: 200-Amp Heavy-Up"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B10",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C10",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D10",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E10",
+                "value": "Unchanged; inspection override handles actual scope."
+              }
+            }
+          },
+          {
+            "row": 11,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A11",
+                "value": "Exterior: Concrete Driveway (sqft)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B11",
+                "value": 200
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C11",
+                "value": 300
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D11",
+                "value": 400
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E11",
+                "value": "Scaled from single-car pad to two-car driveway."
+              }
+            }
+          },
+          {
+            "row": 12,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A12",
+                "value": "Exterior: 16x7 Double Garage Door"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B12",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C12",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D12",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E12",
+                "value": "Unchanged pending garage/parking research."
+              }
+            }
+          },
+          {
+            "row": 13,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A13",
+                "value": "Appliance: Kitchen Suite"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B13",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C13",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D13",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E13",
+                "value": "One kitchen suite default."
+              }
+            }
+          },
+          {
+            "row": 14,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A14",
+                "value": "Appliance: Washer & Dryer"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B14",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C14",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D14",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E14",
+                "value": "One washer/dryer default."
+              }
+            }
+          },
+          {
+            "row": 15,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A15",
+                "value": "Finishes: LVP Flooring (sqft)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B15",
+                "value": 700
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C15",
+                "value": 900
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D15",
+                "value": 1200
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E15",
+                "value": "Usable floor area baseline by bedroom count."
+              }
+            }
+          },
+          {
+            "row": 16,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A16",
+                "value": "Finishes: Interior Paint (sqft)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B16",
+                "value": 700
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C16",
+                "value": 900
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D16",
+                "value": 1200
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E16",
+                "value": "Uses same current floor-area proxy as flooring."
+              }
+            }
+          },
+          {
+            "row": 17,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A17",
+                "value": "Ext: Windows/Doors (per unit)"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B17",
+                "value": 8
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C17",
+                "value": 8
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D17",
+                "value": 8
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E17",
+                "value": "Unchanged pending window-count research."
+              }
+            }
+          },
+          {
+            "row": 18,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A18",
+                "value": "Ext: Siding / Paint"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B18",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C18",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D18",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E18",
+                "value": "Project unit; unchanged."
+              }
+            }
+          },
+          {
+            "row": 19,
+            "cells": {
+              "A": {
+                "source": "'Quantity Defaults'!A19",
+                "value": "Plumbing: Bath Surrounds"
+              },
+              "B": {
+                "source": "'Quantity Defaults'!B19",
+                "value": 1
+              },
+              "C": {
+                "source": "'Quantity Defaults'!C19",
+                "value": 1
+              },
+              "D": {
+                "source": "'Quantity Defaults'!D19",
+                "value": 1
+              },
+              "E": {
+                "source": "'Quantity Defaults'!E19",
+                "value": "Unchanged pending bathroom-count defaults."
+              }
+            }
+          }
+        ]
+      },
+      "swpaActuarialLifespans": {
+        "range": "'SWPA Actuarial Lifespans'!A1:D16",
+        "rows": [
+          {
+            "row": 1,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A1",
+                "value": "CapEx Component"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B1",
+                "value": "National Standard Lifespan"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C1",
+                "value": "SWPA Adjusted Lifespan"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D1",
+                "value": "Primary Environmental Degradation Catalyst"
+              }
+            }
+          },
+          {
+            "row": 2,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A2",
+                "value": "Architectural Asphalt Shingles"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B2",
+                "value": "25 - 30 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C2",
+                "value": "15 - 20 Years"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D2",
+                "value": "Severe UV variation, ice dams, freeze-thaw expansion"
+              }
+            }
+          },
+          {
+            "row": 3,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A3",
+                "value": "Standard Metal Roofing"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B3",
+                "value": "50 - 70 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C3",
+                "value": "40 - 50 Years"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D3",
+                "value": "Acidic precipitation, heavy snow loading (Eastern band)"
+              }
+            }
+          },
+          {
+            "row": 4,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A4",
+                "value": "HVAC AC Condenser / Heat Pump"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B4",
+                "value": "15 - 20 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C4",
+                "value": "10 - 12 Years"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D4",
+                "value": "High summer humidity, corrosive road salt aerosolization"
+              }
+            }
+          },
+          {
+            "row": 5,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A5",
+                "value": "HVAC Gas Furnace"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B5",
+                "value": "20 - 25 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C5",
+                "value": "15 - 18 Years"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D5",
+                "value": "Extended heating seasons, thermal cycling stress"
+              }
+            }
+          },
+          {
+            "row": 6,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A6",
+                "value": "Standard Gas/Electric Water Heater"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B6",
+                "value": "10 - 15 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C6",
+                "value": "8 - 12 Years"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D6",
+                "value": "Hard municipal water scaling, systemic basement dampness"
+              }
+            }
+          },
+          {
+            "row": 7,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A7",
+                "value": "Interior French Drain Systems"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B7",
+                "value": "30+ Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C7",
+                "value": "15 - 20 Years"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D7",
+                "value": "Expansive clay soils, extreme hydrostatic pressure"
+              }
+            }
+          },
+          {
+            "row": 8,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A8",
+                "value": "Concrete Driveway/Walkways"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B8",
+                "value": "25 - 30 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C8",
+                "value": "15 - 20 Years"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D8",
+                "value": "80-100 freeze-thaw cycles per winter, heavy road salt"
+              }
+            }
+          },
+          {
+            "row": 9,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A9",
+                "value": "Standard Double Garage Door"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B9",
+                "value": "20 - 30 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C9",
+                "value": "15 - 20 Years"
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D9",
+                "value": "Track warping from temperature swings, torsion spring fatigue from cold"
+              }
+            }
+          },
+          {
+            "row": 10,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A10",
+                "value": "Appliance: Kitchen Suite"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B10",
+                "value": "9 - 20 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C10",
+                "value": 10
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D10",
+                "value": "Standard mechanical wear and tenant use"
+              }
+            }
+          },
+          {
+            "row": 11,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A11",
+                "value": "Appliance: Washer & Dryer"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B11",
+                "value": "5 - 15 Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C11",
+                "value": 8
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D11",
+                "value": "Hard water scaling on internal pumps, tenant load fatigue"
+              }
+            }
+          },
+          {
+            "row": 12,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A12",
+                "value": "Finishes: LVP Flooring (sqft)"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B12",
+                "value": "N/A"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C12",
+                "value": 12
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D12",
+                "value": "Winter boot salt tracking, thermal expansion/contraction"
+              }
+            }
+          },
+          {
+            "row": 13,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A13",
+                "value": "Finishes: Interior Paint (sqft)"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B13",
+                "value": "N/A"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C13",
+                "value": 5
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D13",
+                "value": "Standard turnover abrasion"
+              }
+            }
+          },
+          {
+            "row": 14,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A14",
+                "value": "Ext: Windows/Doors (per unit)"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B14",
+                "value": "N/A"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C14",
+                "value": 25
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D14",
+                "value": "Seal failure from freeze-thaw cycles, UV warp"
+              }
+            }
+          },
+          {
+            "row": 15,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A15",
+                "value": "Ext: Siding / Paint"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B15",
+                "value": "Lifetime / 100+ Years"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C15",
+                "value": 25
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D15",
+                "value": "Wind-driven rain, hail micro-fractures, UV fade"
+              }
+            }
+          },
+          {
+            "row": 16,
+            "cells": {
+              "A": {
+                "source": "'SWPA Actuarial Lifespans'!A16",
+                "value": "Plumbing: Bath Surrounds"
+              },
+              "B": {
+                "source": "'SWPA Actuarial Lifespans'!B16",
+                "value": "N/A"
+              },
+              "C": {
+                "source": "'SWPA Actuarial Lifespans'!C16",
+                "value": 15
+              },
+              "D": {
+                "source": "'SWPA Actuarial Lifespans'!D16",
+                "value": "Hard water etching, caulking failure"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "dashboard": {
+      "cellsB1ToB46": [
+        {
+          "row": 1,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B1",
+              "value": "Input / Formula (Column B)"
+            }
+          }
+        },
+        {
+          "row": 2,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B2",
+              "value": "[Type Address Here]"
+            }
+          }
+        },
+        {
+          "row": 3,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B3",
+              "value": "Eastern Foothills Band"
+            }
+          }
+        },
+        {
+          "row": 4,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B4",
+              "value": "Avg Rent: 2-Bedroom"
+            }
+          }
+        },
+        {
+          "row": 5,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B5",
+              "value": 275000,
+              "formula": "'10-Year Pro Forma'!B1"
+            }
+          }
+        },
+        {
+          "row": 6,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B6",
+              "value": 60000,
+              "formula": "'10-Year Pro Forma'!B2"
+            }
+          }
+        },
+        {
+          "row": 7,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B7",
+              "value": 0.065
+            }
+          }
+        },
+        {
+          "row": 8,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B8",
+              "value": 15
+            }
+          }
+        },
+        {
+          "row": 9,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B9",
+              "value": 215000,
+              "formula": "B5 - B6"
+            }
+          }
+        },
+        {
+          "row": 10,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B10",
+              "value": 0.03
+            }
+          }
+        },
+        {
+          "row": 11,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B11",
+              "value": 0
+            }
+          }
+        },
+        {
+          "row": 12,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B12",
+              "value": 500
+            }
+          }
+        },
+        {
+          "row": 13,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B13",
+              "value": ""
+            }
+          }
+        },
+        {
+          "row": 14,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B14",
+              "value": ""
+            }
+          }
+        },
+        {
+          "row": 15,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B15",
+              "value": 3800,
+              "formula": "'10-Year Pro Forma'!B3"
+            }
+          }
+        },
+        {
+          "row": 16,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B16",
+              "value": 1000,
+              "formula": "VALUE(VLOOKUP(B3, 'Rent & Vacancy Baselines'!A:F, MATCH(B4, 'Rent & Vacancy Baselines'!A1:F1, 0), FALSE))"
+            }
+          }
+        },
+        {
+          "row": 17,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B17",
+              "value": 0.075,
+              "formula": "VLOOKUP(B3, 'Rent & Vacancy Baselines'!A:F, 6, FALSE)"
+            }
+          }
+        },
+        {
+          "row": 18,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B18",
+              "value": 3515,
+              "formula": "B15 * (1 - B17)"
+            }
+          }
+        },
+        {
+          "row": 19,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B19",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "row": 20,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B20",
+              "value": 0.0425
+            }
+          }
+        },
+        {
+          "row": 21,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B21",
+              "value": 16630.36434,
+              "formula": "B34 * 12 * 2.5"
+            }
+          }
+        },
+        {
+          "row": 22,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B22",
+              "value": ""
+            }
+          }
+        },
+        {
+          "row": 23,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B23",
+              "value": 6463,
+              "formula": "'10-Year Pro Forma'!B4"
+            }
+          }
+        },
+        {
+          "row": 24,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B24",
+              "value": 1800
+            }
+          }
+        },
+        {
+          "row": 25,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B25",
+              "value": 500
+            }
+          }
+        },
+        {
+          "row": 26,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B26",
+              "value": 0
+            }
+          }
+        },
+        {
+          "row": 27,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B27",
+              "value": 0
+            }
+          }
+        },
+        {
+          "row": 28,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B28",
+              "value": 100
+            }
+          }
+        },
+        {
+          "row": 29,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B29",
+              "value": 100
+            }
+          }
+        },
+        {
+          "row": 30,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B30",
+              "value": 0,
+              "formula": "'10-Year Pro Forma'!B5"
+            }
+          }
+        },
+        {
+          "row": 31,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B31",
+              "value": ""
+            }
+          }
+        },
+        {
+          "row": 32,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B32",
+              "value": 1205.25,
+              "formula": "(B23/12) + (B24/12) + B25 + (B26 * B18)+(B27/12) + (B28/12) + (B29/12) + B30"
+            }
+          }
+        },
+        {
+          "row": 33,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B33",
+              "value": ""
+            }
+          }
+        },
+        {
+          "row": 34,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B34",
+              "value": 554.345478,
+              "formula": "'Sinking Fund Engine'!K22"
+            }
+          }
+        },
+        {
+          "row": 35,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B35",
+              "value": 1755.404522,
+              "formula": "B18 - B32 - B34"
+            }
+          }
+        },
+        {
+          "row": 36,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B36",
+              "value": ""
+            }
+          }
+        },
+        {
+          "row": 37,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B37",
+              "value": 0.07659947005,
+              "formula": "(B35 * 12) / B5"
+            }
+          }
+        },
+        {
+          "row": 38,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B38",
+              "value": ""
+            }
+          }
+        },
+        {
+          "row": 39,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B39",
+              "value": 1872.880835,
+              "formula": "PMT(B7/12, B8*12, -B9)"
+            }
+          }
+        },
+        {
+          "row": 40,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B40",
+              "value": -117.4763134,
+              "formula": "B35 - B39"
+            }
+          }
+        },
+        {
+          "row": 41,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B41",
+              "value": 68750,
+              "formula": "B6 + IF(B11>0, B11, B5*B10) + B12"
+            }
+          }
+        },
+        {
+          "row": 42,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B42",
+              "value": -0.02050495652,
+              "formula": "(B40 * 12) / B41"
+            }
+          }
+        },
+        {
+          "row": 43,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B43",
+              "value": 0.9372750732,
+              "formula": "B35/B39"
+            }
+          }
+        },
+        {
+          "row": 44,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B44",
+              "value": 0.1068756188,
+              "formula": "((B40*12)-CUMPRINC(B7/12, B8*12, B9, 1, 12, 0))/B41"
+            }
+          }
+        },
+        {
+          "row": 45,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B45",
+              "value": 3927.00142,
+              "formula": "(B39+B32+B34)/(1-B17)"
+            }
+          }
+        },
+        {
+          "row": 46,
+          "cells": {
+            "B": {
+              "source": "Dashboard!B46",
+              "value": 0.01381818182,
+              "formula": "B15/B5"
+            }
+          }
+        }
+      ],
+      "overrideDisplays": {
+        "dashboardHeader": {
+          "source": "Dashboard!C2",
+          "expected": "",
+          "formula": "IF(COUNTIF(INDIRECT(\"'Sinking Fund Engine'!L2:L19\"),\"OVERRIDE ACTIVE\")>0,\"INSPECTION OVERRIDES ACTIVE\",\"\")"
+        },
+        "capexReserveLine": {
+          "source": "Dashboard!C34",
+          "expected": "",
+          "formula": "IF(COUNTIF(INDIRECT(\"'Sinking Fund Engine'!L2:L19\"),\"OVERRIDE ACTIVE\")>0,\"OVERRIDES ACTIVE\",\"\")"
+        }
+      },
+      "defaultOutputs": {
+        "effectiveGrossIncomeMonthly": {
+          "source": "Dashboard!B18",
+          "expected": 3515,
+          "formula": "B15 * (1 - B17)"
+        },
+        "targetCapExReserve": {
+          "source": "Dashboard!B21",
+          "expected": 16630.36434,
+          "formula": "B34 * 12 * 2.5"
+        },
+        "totalMonthlyFixedExpenses": {
+          "source": "Dashboard!B32",
+          "expected": 1205.25,
+          "formula": "(B23/12) + (B24/12) + B25 + (B26 * B18)+(B27/12) + (B28/12) + (B29/12) + B30"
+        },
+        "totalMonthlyCapexReserve": {
+          "source": "Dashboard!B34",
+          "expected": 554.345478,
+          "formula": "'Sinking Fund Engine'!K22"
+        },
+        "netOperatingIncomeMonthly": {
+          "source": "Dashboard!B35",
+          "expected": 1755.404522,
+          "formula": "B18 - B32 - B34"
+        },
+        "capRate": {
+          "source": "Dashboard!B37",
+          "expected": 0.07659947005,
+          "formula": "(B35 * 12) / B5"
+        },
+        "monthlyMortgagePI": {
+          "source": "Dashboard!B39",
+          "expected": 1872.880835,
+          "formula": "PMT(B7/12, B8*12, -B9)"
+        },
+        "trueMonthlyCashFlow": {
+          "source": "Dashboard!B40",
+          "expected": -117.4763134,
+          "formula": "B35 - B39"
+        },
+        "totalInitialInvestment": {
+          "source": "Dashboard!B41",
+          "expected": 68750,
+          "formula": "B6 + IF(B11>0, B11, B5*B10) + B12"
+        },
+        "cashOnCashReturn": {
+          "source": "Dashboard!B42",
+          "expected": -0.02050495652,
+          "formula": "(B40 * 12) / B41"
+        },
+        "debtServiceCoverageRatio": {
+          "source": "Dashboard!B43",
+          "expected": 0.9372750732,
+          "formula": "B35/B39"
+        },
+        "yearOneTotalReturnOnEquity": {
+          "source": "Dashboard!B44",
+          "expected": 0.1068756188,
+          "formula": "((B40*12)-CUMPRINC(B7/12, B8*12, B9, 1, 12, 0))/B41"
+        },
+        "breakevenGrossRent": {
+          "source": "Dashboard!B45",
+          "expected": 3927.00142,
+          "formula": "(B39+B32+B34)/(1-B17)"
+        },
+        "rentToValueRatio": {
+          "source": "Dashboard!B46",
+          "expected": 0.01381818182,
+          "formula": "B15/B5"
+        }
+      },
+      "knownGapOutputs": {}
+    },
+    "sinkingFund": {
+      "rows": [
+        {
+          "row": 2,
+          "component": "Roofing: Arch. Asphalt (per sq)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B2",
+            "expected": 577.5,
+            "formula": "VLOOKUP(A2, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A2, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C2",
+            "expected": 18,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A2,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D2",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E2",
+            "expected": 18,
+            "formula": "IF(AND(NOT(ISBLANK(D2)),D2<>C2),D2,C2)\n"
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F2",
+            "expected": 18
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G2",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H2",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I2",
+            "expected": 18,
+            "formula": "MAX(F2-IF(AND(NOT(ISBLANK(H2)),H2<>G2),H2,G2),1)\n"
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J2",
+            "expected": 25016.80693,
+            "formula": "B2*E2*(1+Dashboard!$B$19)^I2\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K2",
+            "expected": 77.30722584,
+            "formula": "PMT(Dashboard!$B$20/12,I2*12,0,-J2)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L2",
+            "expected": "",
+            "formula": "IF(OR(AND(NOT(ISBLANK(D2)),D2<>C2),AND(NOT(ISBLANK(H2)),H2<>G2)),\"OVERRIDE ACTIVE\",\"\")"
+          }
+        },
+        {
+          "row": 3,
+          "component": "Roofing: Metal Panels (per sq)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B3",
+            "expected": 1092.5,
+            "formula": "VLOOKUP(A3, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A3, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C3",
+            "expected": 0,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A3,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D3",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E3",
+            "expected": 0
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F3",
+            "expected": 45
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G3",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H3",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I3",
+            "expected": 45
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J3",
+            "expected": 0,
+            "formula": "B3*E3*(1+Dashboard!$B$19)^I3\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K3",
+            "expected": 0,
+            "formula": "PMT(Dashboard!$B$20/12,I3*12,0,-J3)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L3",
+            "expected": ""
+          }
+        },
+        {
+          "row": 4,
+          "component": "HVAC: Gas Furnace (80k BTU)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B4",
+            "expected": 4860,
+            "formula": "VLOOKUP(A4, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A4, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C4",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A4,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D4",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E4",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F4",
+            "expected": 16
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G4",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H4",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I4",
+            "expected": 16
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J4",
+            "expected": 10608.7705,
+            "formula": "B4*E4*(1+Dashboard!$B$19)^I4\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K4",
+            "expected": 38.67465185,
+            "formula": "PMT(Dashboard!$B$20/12,I4*12,0,-J4)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L4",
+            "expected": ""
+          }
+        },
+        {
+          "row": 5,
+          "component": "HVAC: AC Condenser (3-Ton)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B5",
+            "expected": 5184,
+            "formula": "VLOOKUP(A5, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A5, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C5",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A5,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D5",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E5",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F5",
+            "expected": 11
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G5",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H5",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I5",
+            "expected": 11
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J5",
+            "expected": 8866.399232,
+            "formula": "B5*E5*(1+Dashboard!$B$19)^I5\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K5",
+            "expected": 52.80444401,
+            "formula": "PMT(Dashboard!$B$20/12,I5*12,0,-J5)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L5",
+            "expected": ""
+          }
+        },
+        {
+          "row": 6,
+          "component": "HVAC: Full Heat Pump System",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B6",
+            "expected": 19040,
+            "formula": "VLOOKUP(A6, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A6, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C6",
+            "expected": 0,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A6,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D6",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E6",
+            "expected": 0
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F6",
+            "expected": 11
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G6",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H6",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I6",
+            "expected": 11
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J6",
+            "expected": 0,
+            "formula": "B6*E6*(1+Dashboard!$B$19)^I6\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K6",
+            "expected": 0,
+            "formula": "PMT(Dashboard!$B$20/12,I6*12,0,-J6)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L6",
+            "expected": ""
+          }
+        },
+        {
+          "row": 7,
+          "component": "Plumbing: Gas Water Heater (50g)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B7",
+            "expected": 2145,
+            "formula": "VLOOKUP(A7, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A7, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C7",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A7,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D7",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E7",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F7",
+            "expected": 10
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G7",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H7",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I7",
+            "expected": 10
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J7",
+            "expected": 3493.978974,
+            "formula": "B7*E7*(1+Dashboard!$B$19)^I7\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K7",
+            "expected": 23.41694991,
+            "formula": "PMT(Dashboard!$B$20/12,I7*12,0,-J7)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L7",
+            "expected": ""
+          }
+        },
+        {
+          "row": 8,
+          "component": "Plumbing: Elec. Water Heater",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B8",
+            "expected": 1540,
+            "formula": "VLOOKUP(A8, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A8, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C8",
+            "expected": 0,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A8,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D8",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E8",
+            "expected": 0
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F8",
+            "expected": 10
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G8",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H8",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I8",
+            "expected": 10
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J8",
+            "expected": 0,
+            "formula": "B8*E8*(1+Dashboard!$B$19)^I8\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K8",
+            "expected": 0,
+            "formula": "PMT(Dashboard!$B$20/12,I8*12,0,-J8)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L8",
+            "expected": ""
+          }
+        },
+        {
+          "row": 9,
+          "component": "Plumbing: Int. French Drain (lf)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B9",
+            "expected": 97.75,
+            "formula": "VLOOKUP(A9, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A9, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C9",
+            "expected": 90,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A9,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D9",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E9",
+            "expected": 90
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F9",
+            "expected": 18
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G9",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H9",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I9",
+            "expected": 18
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J9",
+            "expected": 21172.23271,
+            "formula": "B9*E9*(1+Dashboard!$B$19)^I9\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K9",
+            "expected": 65.42667814,
+            "formula": "PMT(Dashboard!$B$20/12,I9*12,0,-J9)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L9",
+            "expected": ""
+          }
+        },
+        {
+          "row": 10,
+          "component": "Electrical: 200-Amp Heavy-Up",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B10",
+            "expected": 2420,
+            "formula": "VLOOKUP(A10, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A10, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C10",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A10,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D10",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E10",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F10",
+            "expected": 40
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G10",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H10",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I10",
+            "expected": 40
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J10",
+            "expected": 17036.77268,
+            "formula": "B10*E10*(1+Dashboard!$B$19)^I10\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K10",
+            "expected": 13.53631784,
+            "formula": "PMT(Dashboard!$B$20/12,I10*12,0,-J10)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L10",
+            "expected": ""
+          }
+        },
+        {
+          "row": 11,
+          "component": "Exterior: Concrete Driveway (sqft)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B11",
+            "expected": 12.075,
+            "formula": "VLOOKUP(A11, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A11, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C11",
+            "expected": 300,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A11,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D11",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E11",
+            "expected": 300
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F11",
+            "expected": 18
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G11",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H11",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I11",
+            "expected": 18
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J11",
+            "expected": 8717.978174,
+            "formula": "B11*E11*(1+Dashboard!$B$19)^I11\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K11",
+            "expected": 26.94039688,
+            "formula": "PMT(Dashboard!$B$20/12,I11*12,0,-J11)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L11",
+            "expected": ""
+          }
+        },
+        {
+          "row": 12,
+          "component": "Exterior: 16x7 Double Garage Door",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B12",
+            "expected": 2035,
+            "formula": "VLOOKUP(A12, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A12, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C12",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A12,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D12",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E12",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F12",
+            "expected": 18
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G12",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H12",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I12",
+            "expected": 18
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J12",
+            "expected": 4897.470141,
+            "formula": "B12*E12*(1+Dashboard!$B$19)^I12\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K12",
+            "expected": 15.13421881,
+            "formula": "PMT(Dashboard!$B$20/12,I12*12,0,-J12)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L12",
+            "expected": ""
+          }
+        },
+        {
+          "row": 13,
+          "component": "Appliance: Kitchen Suite",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B13",
+            "expected": 2205,
+            "formula": "VLOOKUP(A13, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A13, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C13",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A13,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D13",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E13",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F13",
+            "expected": 10
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G13",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H13",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I13",
+            "expected": 10
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J13",
+            "expected": 3591.712652,
+            "formula": "B13*E13*(1+Dashboard!$B$19)^I13\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K13",
+            "expected": 24.07196948,
+            "formula": "PMT(Dashboard!$B$20/12,I13*12,0,-J13)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L13",
+            "expected": ""
+          }
+        },
+        {
+          "row": 14,
+          "component": "Appliance: Washer & Dryer",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B14",
+            "expected": 1470,
+            "formula": "VLOOKUP(A14, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A14, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C14",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A14,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D14",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E14",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F14",
+            "expected": 8
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G14",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H14",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I14",
+            "expected": 8
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J14",
+            "expected": 2171.859502,
+            "formula": "B14*E14*(1+Dashboard!$B$19)^I14\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K14",
+            "expected": 19.03471269,
+            "formula": "PMT(Dashboard!$B$20/12,I14*12,0,-J14)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L14",
+            "expected": ""
+          }
+        },
+        {
+          "row": 15,
+          "component": "Finishes: LVP Flooring (sqft)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B15",
+            "expected": 4.5,
+            "formula": "VLOOKUP(A15, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A15, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C15",
+            "expected": 900,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A15,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D15",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E15",
+            "expected": 900
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F15",
+            "expected": 12
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G15",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H15",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I15",
+            "expected": 12
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J15",
+            "expected": 7273.21812,
+            "formula": "B15*E15*(1+Dashboard!$B$19)^I15\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K15",
+            "expected": 38.80633642,
+            "formula": "PMT(Dashboard!$B$20/12,I15*12,0,-J15)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L15",
+            "expected": ""
+          }
+        },
+        {
+          "row": 16,
+          "component": "Finishes: Interior Paint (sqft)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B16",
+            "expected": 2.875,
+            "formula": "VLOOKUP(A16, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A16, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C16",
+            "expected": 900,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A16,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D16",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E16",
+            "expected": 900
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F16",
+            "expected": 5
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G16",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H16",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I16",
+            "expected": 5
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J16",
+            "expected": 3302.378543,
+            "formula": "B16*E16*(1+Dashboard!$B$19)^I16\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K16",
+            "expected": 49.49568352,
+            "formula": "PMT(Dashboard!$B$20/12,I16*12,0,-J16)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L16",
+            "expected": ""
+          }
+        },
+        {
+          "row": 17,
+          "component": "Ext: Windows/Doors (per unit)",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B17",
+            "expected": 690,
+            "formula": "VLOOKUP(A17, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A17, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C17",
+            "expected": 8,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A17,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D17",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E17",
+            "expected": 8
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F17",
+            "expected": 25
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G17",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H17",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I17",
+            "expected": 25
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J17",
+            "expected": 18692.67927,
+            "formula": "B17*E17*(1+Dashboard!$B$19)^I17\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K17",
+            "expected": 35.06212663,
+            "formula": "PMT(Dashboard!$B$20/12,I17*12,0,-J17)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L17",
+            "expected": ""
+          }
+        },
+        {
+          "row": 18,
+          "component": "Ext: Siding / Paint",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B18",
+            "expected": 9600,
+            "formula": "VLOOKUP(A18, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A18, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C18",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A18,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D18",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E18",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F18",
+            "expected": 25
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G18",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H18",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I18",
+            "expected": 25
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J18",
+            "expected": 32509.00743,
+            "formula": "B18*E18*(1+Dashboard!$B$19)^I18\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K18",
+            "expected": 60.97761152,
+            "formula": "PMT(Dashboard!$B$20/12,I18*12,0,-J18)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L18",
+            "expected": ""
+          }
+        },
+        {
+          "row": 19,
+          "component": "Plumbing: Bath Surrounds",
+          "localUnitCost": {
+            "source": "'Sinking Fund Engine'!B19",
+            "expected": 1650,
+            "formula": "VLOOKUP(A19, 'CapEx Cost Matrix'!$A$2:$F$19, 2, FALSE) * IF(Dashboard!$B$3=\"Central (Greensburg 15601)\", 1, (1 + VLOOKUP(A19, 'CapEx Cost Matrix'!$A$2:$F$19, MATCH(Dashboard!$B$3, 'CapEx Cost Matrix'!$A$1:$F$1, 0), FALSE)))"
+          },
+          "defaultQuantity": {
+            "source": "'Sinking Fund Engine'!C19",
+            "expected": 1,
+            "formula": "INDEX('Quantity Defaults'!$B$2:$D$19,MATCH($A19,'Quantity Defaults'!$A$2:$A$19,0),MATCH(Dashboard!$B$4,'Quantity Defaults'!$B$1:$D$1,0))"
+          },
+          "overrideQuantity": {
+            "source": "'Sinking Fund Engine'!D19",
+            "value": ""
+          },
+          "effectiveQuantity": {
+            "source": "'Sinking Fund Engine'!E19",
+            "expected": 1
+          },
+          "swpaLifespan": {
+            "source": "'Sinking Fund Engine'!F19",
+            "expected": 15
+          },
+          "defaultAge": {
+            "source": "'Sinking Fund Engine'!G19",
+            "expected": 0,
+            "formula": "'10-Year Pro Forma'!$B$6"
+          },
+          "overrideAge": {
+            "source": "'Sinking Fund Engine'!H19",
+            "value": ""
+          },
+          "remainingLife": {
+            "source": "'Sinking Fund Engine'!I19",
+            "expected": 15
+          },
+          "futureCost": {
+            "source": "'Sinking Fund Engine'!J19",
+            "expected": 3430.231496,
+            "formula": "B19*E19*(1+Dashboard!$B$19)^I19\n"
+          },
+          "monthlyReserve": {
+            "source": "'Sinking Fund Engine'!K19",
+            "expected": 13.65615445,
+            "formula": "PMT(Dashboard!$B$20/12,I19*12,0,-J19)\n"
+          },
+          "overrideStatus": {
+            "source": "'Sinking Fund Engine'!L19",
+            "expected": ""
+          }
+        }
+      ],
+      "totalMonthlyReserve": {
+        "source": "'Sinking Fund Engine'!K22",
+        "expected": 554.345478,
+        "formula": "SUM(K2:K19)"
+      }
+    },
+    "proForma": {
+      "defaultInputs": [
+        {
+          "row": 1,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A1",
+              "value": "Purchase Price"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B1",
+              "value": 275000
+            }
+          }
+        },
+        {
+          "row": 2,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A2",
+              "value": "Down Payment ($)"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B2",
+              "value": 60000
+            }
+          }
+        },
+        {
+          "row": 3,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A3",
+              "value": "Expected Monthly Rent"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B3",
+              "value": 3800
+            }
+          }
+        },
+        {
+          "row": 4,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A4",
+              "value": "Annual Property Taxes"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B4",
+              "value": 6463
+            }
+          }
+        },
+        {
+          "row": 5,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A5",
+              "value": "HOA Fees (Monthly)"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B5",
+              "value": 0
+            }
+          }
+        },
+        {
+          "row": 6,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A6",
+              "value": "Effective Age of Property (Years)"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B6",
+              "value": 0
+            }
+          }
+        },
+        {
+          "row": 7,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A7",
+              "value": "Alternative Investment: Money Market APY"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B7",
+              "value": 0.038
+            }
+          }
+        },
+        {
+          "row": 8,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A8",
+              "value": "Alternative Investment: Conservative IRA APY"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B8",
+              "value": 0.08
+            }
+          }
+        },
+        {
+          "row": 9,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A9",
+              "value": "Assumed Annual Appreciation"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B9",
+              "value": 0.03
+            }
+          }
+        },
+        {
+          "row": 10,
+          "cells": {
+            "A": {
+              "source": "'10-Year Pro Forma'!A10",
+              "value": "Cost of Sale (Broker/Taxes)"
+            },
+            "B": {
+              "source": "'10-Year Pro Forma'!B10",
+              "value": 0.04
+            }
+          }
+        }
+      ],
+      "initialInvestment": {
+        "source": "'10-Year Pro Forma'!B13",
+        "expected": 68750,
+        "formula": "Dashboard!B41"
+      },
+      "rows": [
+        {
+          "year": 0,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!B14",
+            "expected": 0
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!B15",
+            "expected": 0
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!B16",
+            "expected": 0
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!B17",
+            "expected": 68750,
+            "formula": "B13"
+          }
+        },
+        {
+          "year": 1,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!C14",
+            "expected": 6652.145736,
+            "formula": "IF(B15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!C15",
+            "expected": 6652.145736,
+            "formula": "MIN(Dashboard!$B$21, (B15 * (1 + Dashboard!$B$20)) + C14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!C16",
+            "expected": -1409.715761,
+            "formula": "B16 + (Dashboard!$B$40 * 12) + IF(C14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!C17",
+            "expected": 64267.69879,
+            "formula": "C16 + ($B$1*(1+$B$9)^COLUMN(A1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(A1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(A1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 2,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!D14",
+            "expected": 6652.145736,
+            "formula": "IF(C15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!D15",
+            "expected": 13587.00767,
+            "formula": "MIN(Dashboard!$B$21, (C15 * (1 + Dashboard!$B$20)) + D14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!D16",
+            "expected": -2819.431521,
+            "formula": "C16 + (Dashboard!$B$40 * 12) + IF(D14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!D17",
+            "expected": 80359.49785,
+            "formula": "D16 + ($B$1*(1+$B$9)^COLUMN(B1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(B1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(B1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 3,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!E14",
+            "expected": 6652.145736,
+            "formula": "IF(D15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!E15",
+            "expected": 16630.36434,
+            "formula": "MIN(Dashboard!$B$21, (D15 * (1 + Dashboard!$B$20)) + E14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!E16",
+            "expected": -4229.147282,
+            "formula": "D16 + (Dashboard!$B$40 * 12) + IF(E14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!E17",
+            "expected": 97321.80419,
+            "formula": "E16 + ($B$1*(1+$B$9)^COLUMN(C1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(C1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(C1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 4,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!F14",
+            "expected": 0,
+            "formula": "IF(E15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!F15",
+            "expected": 16630.36434,
+            "formula": "MIN(Dashboard!$B$21, (E15 * (1 + Dashboard!$B$20)) + F14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!F16",
+            "expected": 1013.282693,
+            "formula": "E16 + (Dashboard!$B$40 * 12) + IF(F14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!F17",
+            "expected": 121856.015,
+            "formula": "F16 + ($B$1*(1+$B$9)^COLUMN(D1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(D1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(D1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 5,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!G14",
+            "expected": 0,
+            "formula": "IF(F15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!G15",
+            "expected": 16630.36434,
+            "formula": "MIN(Dashboard!$B$21, (F15 * (1 + Dashboard!$B$20)) + G14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!G16",
+            "expected": 6255.712668,
+            "formula": "F16 + (Dashboard!$B$40 * 12) + IF(G14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!G17",
+            "expected": 147362.263,
+            "formula": "G16 + ($B$1*(1+$B$9)^COLUMN(E1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(E1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(E1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 6,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!H14",
+            "expected": 0,
+            "formula": "IF(G15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!H15",
+            "expected": 16630.36434,
+            "formula": "MIN(Dashboard!$B$21, (G15 * (1 + Dashboard!$B$20)) + H14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!H16",
+            "expected": 11498.14264,
+            "formula": "G16 + (Dashboard!$B$40 * 12) + IF(H14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!H17",
+            "expected": 173896.0482,
+            "formula": "H16 + ($B$1*(1+$B$9)^COLUMN(F1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(F1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(F1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 7,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!I14",
+            "expected": 0,
+            "formula": "IF(H15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!I15",
+            "expected": 16630.36434,
+            "formula": "MIN(Dashboard!$B$21, (H15 * (1 + Dashboard!$B$20)) + I14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!I16",
+            "expected": 16740.57262,
+            "formula": "H16 + (Dashboard!$B$40 * 12) + IF(I14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!I17",
+            "expected": 201516.2996,
+            "formula": "I16 + ($B$1*(1+$B$9)^COLUMN(G1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(G1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(G1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 8,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!J14",
+            "expected": 0,
+            "formula": "IF(I15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!J15",
+            "expected": 16630.36434,
+            "formula": "MIN(Dashboard!$B$21, (I15 * (1 + Dashboard!$B$20)) + J14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!J16",
+            "expected": 21983.00259,
+            "formula": "I16 + (Dashboard!$B$40 * 12) + IF(J14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!J17",
+            "expected": 230285.5963,
+            "formula": "J16 + ($B$1*(1+$B$9)^COLUMN(H1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(H1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(H1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 9,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!K14",
+            "expected": 0,
+            "formula": "IF(J15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!K15",
+            "expected": 16630.36434,
+            "formula": "MIN(Dashboard!$B$21, (J15 * (1 + Dashboard!$B$20)) + K14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!K16",
+            "expected": 27225.43257,
+            "formula": "J16 + (Dashboard!$B$40 * 12) + IF(K14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!K17",
+            "expected": 260270.4028,
+            "formula": "K16 + ($B$1*(1+$B$9)^COLUMN(I1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(I1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(I1)*$B$10)\n\n\n\n"
+          }
+        },
+        {
+          "year": 10,
+          "annualCapexContribution": {
+            "source": "'10-Year Pro Forma'!L14",
+            "expected": 0,
+            "formula": "IF(K15 < Dashboard!$B$21, Dashboard!$B$34*12, 0)"
+          },
+          "accumulatedCapexReserve": {
+            "source": "'10-Year Pro Forma'!L15",
+            "expected": 16630.36434,
+            "formula": "MIN(Dashboard!$B$21, (K15 * (1 + Dashboard!$B$20)) + L14)"
+          },
+          "accumulatedTrueCashFlow": {
+            "source": "'10-Year Pro Forma'!L16",
+            "expected": 32467.86255,
+            "formula": "K16 + (Dashboard!$B$40 * 12) + IF(L14=0, Dashboard!$B$34*12, 0)"
+          },
+          "realEstateLiquidationWealth": {
+            "source": "'10-Year Pro Forma'!L17",
+            "expected": 308171.6845,
+            "formula": "L16 + ($B$1*(1+$B$9)^COLUMN(J1)) - (Dashboard!$B$9 + CUMPRINC(Dashboard!$B$7/12,Dashboard!$B$8*12,Dashboard!$B$9,1,COLUMN(J1)*12,0)) - ($B$1*(1+$B$9)^COLUMN(J1)*$B$10)+L15\n\n\n\n"
+          }
+        }
+      ],
+      "year10ExitAnalysis": {
+        "futurePropertyValue": {
+          "source": "'10-Year Pro Forma'!B23",
+          "expected": 369577.0043,
+          "formula": "B1 * (1 + B9)^10"
+        },
+        "loanBalanceAfterTenYears": {
+          "source": "'10-Year Pro Forma'!B24",
+          "expected": 95720.46651,
+          "formula": "Dashboard!B9 + CUMPRINC(Dashboard!B7/12, Dashboard!B8*12, Dashboard!B9, 1, 120, 0)"
+        },
+        "costOfSale": {
+          "source": "'10-Year Pro Forma'!B25",
+          "expected": 14783.08017,
+          "formula": "B23 * B10"
+        },
+        "netProceeds": {
+          "source": "'10-Year Pro Forma'!B26",
+          "expected": 259073.4576,
+          "formula": "B23 - B24 - B25"
+        },
+        "totalTenYearRoi": {
+          "source": "'10-Year Pro Forma'!B28",
+          "expected": 3.240601021,
+          "formula": "(B26+L16-B13)/B13"
+        }
+      }
+    },
+    "formulaAudit": {
+      "diagnosticOnly": true,
+      "sourceNote": "Formula Audit is legacy workbook diagnostic evidence only. It is outdated for this iteration and is not canonical app input or output behavior.",
+      "year10RoiConflict": "Year10_ROI points to B28, while Year10_Liquidation_Wealth points to L17 and includes accumulated reserve cash.",
+      "cells": {
+        "B2": {
+          "source": "'Formula Audit'!B2",
+          "expected": 0,
+          "formula": "COUNTIF(Override_Status,\"OVERRIDE ACTIVE\")"
+        },
+        "C2": {
+          "source": "'Formula Audit'!C2",
+          "expected": "OK - no overrides",
+          "formula": "IF(B2=0,\"OK - no overrides\",B2&\" override row(s) active\")"
+        },
+        "B5": {
+          "source": "'Formula Audit'!B5",
+          "expected": 0,
+          "formula": "ABS(B3-B4)"
+        },
+        "C5": {
+          "source": "'Formula Audit'!C5",
+          "expected": "OK",
+          "formula": "IF(B5<0.01,\"OK\",\"CHECK\")"
+        },
+        "B6": {
+          "source": "'Formula Audit'!B6",
+          "expected": 308171.6845,
+          "formula": "Year10_Liquidation_Wealth"
+        },
+        "B7": {
+          "source": "'Formula Audit'!B7",
+          "expected": 3.240601021,
+          "formula": "Year10_ROI"
+        },
+        "B8": {
+          "source": "'Formula Audit'!B8",
+          "expected": 3.482497229,
+          "formula": "(Year10_Liquidation_Wealth-Initial_Investment)/Initial_Investment"
+        },
+        "C8": {
+          "source": "'Formula Audit'!C8",
+          "expected": "CHECK",
+          "formula": "IF(ABS(B7-B8)<0.0001,\"OK\",\"CHECK\")"
+        },
+        "B9": {
+          "source": "'Formula Audit'!B9",
+          "expected": "OK",
+          "formula": "IF(OR(ISERROR(Total_CapEx_Reserve),ISERROR(Dashboard_CapEx_Reserve),ISERROR(Year10_Liquidation_Wealth),ISERROR(Year10_ROI)),\"ERROR\",\"OK\")"
+        },
+        "B11": {
+          "source": "'Formula Audit'!B11",
+          "expected": 0,
+          "formula": "SUMPRODUCT(--ISERROR('Sinking Fund Engine'!C2:C19))"
+        },
+        "C11": {
+          "source": "'Formula Audit'!C11",
+          "expected": "OK",
+          "formula": "IF(B11=0,\"OK\",\"CHECK\")"
+        },
+        "B12": {
+          "source": "'Formula Audit'!B12",
+          "expected": 0,
+          "formula": "SUMPRODUCT(--ISERROR('Sinking Fund Engine'!B2:B19))"
+        },
+        "C12": {
+          "source": "'Formula Audit'!C12",
+          "expected": "OK"
+        }
+      }
+    },
+    "knownGaps": []
+  }
+}

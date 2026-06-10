@@ -1,0 +1,130 @@
+"""Domain-center package for calculator and teaching meaning.
+
+This package intentionally imports no infrastructure, presentation, bootstrap,
+HTTP, package-resource, browser, or test-fixture modules.
+"""
+
+from .calculate_rental_capex import (
+    RentalCapexCalculationRequest,
+    RentalCapexCalculationResult,
+    calculate_rental_capex,
+    normalize_rental_capex_input,
+)
+from .deal_inputs import (
+    DealInputs,
+    RentalCapexComponentOverrideRequest,
+    RentalCapexDealInputRequest,
+    assert_model_spec,
+    is_blank,
+    normalize_input,
+    validate_input,
+)
+from .errors import (
+    CapexValidationError,
+    ERROR_CODES,
+    LOOKUP_ERROR,
+    MAX_ITERATIONS_EXCEEDED,
+    NO_BRACKET,
+    NON_FINITE_RESULT,
+    RentalCapexError,
+    UNDEFINED_METRIC,
+    VALIDATION_ERROR,
+)
+from .emergency_debt_ledger import (
+    debt_service_for_month,
+    evaluate_deal_survival,
+    evaluate_emergency_debt_ledger,
+    evaluate_overlap_detected,
+    evaluate_shock_adjusted_cash_flow,
+    overlap_refinance_years_from_events,
+    repair_year_first_month,
+    trace_years_from_trace,
+)
+from .financial import cumulative_principal, pmt
+from .repair_reserve_path_trace import (
+    compute_repair_reserve_path_trace,
+    repair_event_label,
+    repair_reserve_year_status,
+)
+from .solve_rental_capex import (
+    RentalCapexSolverRequest,
+    RentalCapexSolverResult,
+    metric_path_expression,
+    round_to_workbook_precision,
+    solve_rental_capex,
+    solve_reserve_first_shortfall,
+)
+from .solver_question_catalog import (
+    SOLVER_QUESTION_CATALOG,
+    SELECTED_SOLVER_QUESTIONS,
+    SelectedSolverQuestion,
+    SolverQuestionTarget,
+    list_selected_solver_questions,
+    selected_solver_question_catalog_to_contract,
+)
+from .workbook_assumptions import (
+    CapExComponent,
+    ComponentCostSource,
+    ComponentQuantitySource,
+    WorkbookAssumptions,
+    WorkbookModelSpec,
+    WorkbookSourceData,
+    compose_workbook_model_spec,
+    model_spec_record,
+)
+
+__all__ = [
+    "calculate_rental_capex",
+    "CapExComponent",
+    "ComponentCostSource",
+    "ComponentQuantitySource",
+    "ERROR_CODES",
+    "LOOKUP_ERROR",
+    "MAX_ITERATIONS_EXCEEDED",
+    "NO_BRACKET",
+    "NON_FINITE_RESULT",
+    "RentalCapexComponentOverrideRequest",
+    "RentalCapexDealInputRequest",
+    "RentalCapexError",
+    "CapexValidationError",
+    "DealInputs",
+    "SOLVER_QUESTION_CATALOG",
+    "SELECTED_SOLVER_QUESTIONS",
+    "SelectedSolverQuestion",
+    "SolverQuestionTarget",
+    "UNDEFINED_METRIC",
+    "VALIDATION_ERROR",
+    "WorkbookAssumptions",
+    "WorkbookModelSpec",
+    "WorkbookSourceData",
+    "assert_model_spec",
+    "compose_workbook_model_spec",
+    "compute_repair_reserve_path_trace",
+    "cumulative_principal",
+    "debt_service_for_month",
+    "evaluate_deal_survival",
+    "evaluate_emergency_debt_ledger",
+    "evaluate_overlap_detected",
+    "evaluate_shock_adjusted_cash_flow",
+    "overlap_refinance_years_from_events",
+    "is_blank",
+    "list_selected_solver_questions",
+    "metric_path_expression",
+    "model_spec_record",
+    "normalize_input",
+    "normalize_rental_capex_input",
+    "pmt",
+    "repair_event_label",
+    "repair_reserve_year_status",
+    "repair_year_first_month",
+    "RentalCapexCalculationRequest",
+    "RentalCapexCalculationResult",
+    "RentalCapexSolverRequest",
+    "RentalCapexSolverResult",
+    "round_to_workbook_precision",
+    "trace_years_from_trace",
+    "selected_solver_question_catalog_to_contract",
+    "solve_rental_capex",
+    "solve_reserve_first_shortfall",
+    "validate_input",
+]

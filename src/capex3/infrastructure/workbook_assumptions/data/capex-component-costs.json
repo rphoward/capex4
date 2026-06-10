@@ -1,0 +1,202 @@
+{
+  "components": [
+    {
+      "name": "Roofing: Arch. Asphalt (per sq)",
+      "centralCost": 525,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.15,
+        "Eastern Foothills Band": 0.1,
+        "Southern Industrial Band": -0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Roofing: Metal Panels (per sq)",
+      "centralCost": 950,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0.05,
+        "Northern Luxury Band": 0.15,
+        "Eastern Foothills Band": 0.15,
+        "Southern Industrial Band": 0
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "HVAC: Gas Furnace (80k BTU)",
+      "centralCost": 4500,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.1,
+        "Eastern Foothills Band": 0.08,
+        "Southern Industrial Band": -0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "HVAC: AC Condenser (3-Ton)",
+      "centralCost": 4800,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.12,
+        "Eastern Foothills Band": 0.08,
+        "Southern Industrial Band": 0
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "HVAC: Full Heat Pump System",
+      "centralCost": 17000,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0.05,
+        "Northern Luxury Band": 0.15,
+        "Eastern Foothills Band": 0.12,
+        "Southern Industrial Band": 0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Plumbing: Gas Water Heater (50g)",
+      "centralCost": 1950,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.1,
+        "Eastern Foothills Band": 0.1,
+        "Southern Industrial Band": -0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Plumbing: Elec. Water Heater",
+      "centralCost": 1400,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.1,
+        "Eastern Foothills Band": 0.1,
+        "Southern Industrial Band": -0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Plumbing: Int. French Drain (lf)",
+      "centralCost": 85,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.2,
+        "Eastern Foothills Band": 0.15,
+        "Southern Industrial Band": -0.1
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Electrical: 200-Amp Heavy-Up",
+      "centralCost": 2200,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0.05,
+        "Northern Luxury Band": 0.15,
+        "Eastern Foothills Band": 0.1,
+        "Southern Industrial Band": 0.15
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Exterior: Concrete Driveway (sqft)",
+      "centralCost": 10.5,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0.05,
+        "Northern Luxury Band": 0.25,
+        "Eastern Foothills Band": 0.15,
+        "Southern Industrial Band": -0.1
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Exterior: 16x7 Double Garage Door",
+      "centralCost": 1850,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.2,
+        "Eastern Foothills Band": 0.1,
+        "Southern Industrial Band": -0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Appliance: Kitchen Suite",
+      "centralCost": 2100,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.15,
+        "Eastern Foothills Band": 0.05,
+        "Southern Industrial Band": 0
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Appliance: Washer & Dryer",
+      "centralCost": 1400,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.15,
+        "Eastern Foothills Band": 0.05,
+        "Southern Industrial Band": 0
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Finishes: LVP Flooring (sqft)",
+      "centralCost": 4.5,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.2,
+        "Eastern Foothills Band": 0,
+        "Southern Industrial Band": -0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Finishes: Interior Paint (sqft)",
+      "centralCost": 2.5,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0.05,
+        "Northern Luxury Band": 0.25,
+        "Eastern Foothills Band": 0.15,
+        "Southern Industrial Band": 0
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Ext: Windows/Doors (per unit)",
+      "centralCost": 600,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0.05,
+        "Northern Luxury Band": 0.2,
+        "Eastern Foothills Band": 0.15,
+        "Southern Industrial Band": 0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Ext: Siding / Paint",
+      "centralCost": 8000,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0.05,
+        "Northern Luxury Band": 0.25,
+        "Eastern Foothills Band": 0.2,
+        "Southern Industrial Band": 0.05
+      },
+      "regionalCostFormula": true
+    },
+    {
+      "name": "Plumbing: Bath Surrounds",
+      "centralCost": 1500,
+      "regionalAdjustments": {
+        "Western Commuter Band": 0,
+        "Northern Luxury Band": 0.25,
+        "Eastern Foothills Band": 0.1,
+        "Southern Industrial Band": 0
+      },
+      "regionalCostFormula": true
+    }
+  ]
+}

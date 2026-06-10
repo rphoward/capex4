@@ -1,0 +1,53 @@
+{
+  "subregions": [
+    "Central (Greensburg 15601)",
+    "Western Commuter Band",
+    "Northern Luxury Band",
+    "Eastern Foothills Band",
+    "Southern Industrial Band"
+  ],
+  "profiles": [
+    "Avg Rent: 1-Bedroom",
+    "Avg Rent: 2-Bedroom",
+    "Avg Rent: 3-BR SFH"
+  ],
+  "pricePerSquareFootReferences": {
+    "Central (Greensburg 15601)": "$1.10 - $1.25",
+    "Western Commuter Band": "$1.25 - $1.40",
+    "Northern Luxury Band": "$1.45 - $1.65",
+    "Eastern Foothills Band": "$0.95 - $1.15",
+    "Southern Industrial Band": "$0.80 - $0.95"
+  },
+  "rentVacancyBaselines": {
+    "Central (Greensburg 15601)": {
+      "Avg Rent: 1-Bedroom": 850,
+      "Avg Rent: 2-Bedroom": 1095,
+      "Avg Rent: 3-BR SFH": 1450,
+      "vacancyRate": 0.06
+    },
+    "Western Commuter Band": {
+      "Avg Rent: 1-Bedroom": 875,
+      "Avg Rent: 2-Bedroom": 1125,
+      "Avg Rent: 3-BR SFH": 1650,
+      "vacancyRate": 0.05
+    },
+    "Northern Luxury Band": {
+      "Avg Rent: 1-Bedroom": 950,
+      "Avg Rent: 2-Bedroom": 1250,
+      "Avg Rent: 3-BR SFH": 1950,
+      "vacancyRate": 0.045
+    },
+    "Eastern Foothills Band": {
+      "Avg Rent: 1-Bedroom": 825,
+      "Avg Rent: 2-Bedroom": 1000,
+      "Avg Rent: 3-BR SFH": 1350,
+      "vacancyRate": 0.075
+    },
+    "Southern Industrial Band": {
+      "Avg Rent: 1-Bedroom": 725,
+      "Avg Rent: 2-Bedroom": 875,
+      "Avg Rent: 3-BR SFH": 1150,
+      "vacancyRate": 0.085
+    }
+  }
+}

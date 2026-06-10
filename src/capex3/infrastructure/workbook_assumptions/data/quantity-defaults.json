@@ -1,0 +1,153 @@
+{
+  "profiles": [
+    "Avg Rent: 1-Bedroom",
+    "Avg Rent: 2-Bedroom",
+    "Avg Rent: 3-BR SFH"
+  ],
+  "componentQuantities": [
+    {
+      "component": "Roofing: Arch. Asphalt (per sq)",
+      "quantities": [
+        12,
+        18,
+        25
+      ]
+    },
+    {
+      "component": "Roofing: Metal Panels (per sq)",
+      "quantities": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "component": "HVAC: Gas Furnace (80k BTU)",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "component": "HVAC: AC Condenser (3-Ton)",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "component": "HVAC: Full Heat Pump System",
+      "quantities": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "component": "Plumbing: Gas Water Heater (50g)",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "component": "Plumbing: Elec. Water Heater",
+      "quantities": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "component": "Plumbing: Int. French Drain (lf)",
+      "quantities": [
+        60,
+        90,
+        125
+      ]
+    },
+    {
+      "component": "Electrical: 200-Amp Heavy-Up",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "component": "Exterior: Concrete Driveway (sqft)",
+      "quantities": [
+        200,
+        300,
+        400
+      ]
+    },
+    {
+      "component": "Exterior: 16x7 Double Garage Door",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "component": "Appliance: Kitchen Suite",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "component": "Appliance: Washer & Dryer",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "component": "Finishes: LVP Flooring (sqft)",
+      "quantities": [
+        700,
+        900,
+        1200
+      ]
+    },
+    {
+      "component": "Finishes: Interior Paint (sqft)",
+      "quantities": [
+        700,
+        900,
+        1200
+      ]
+    },
+    {
+      "component": "Ext: Windows/Doors (per unit)",
+      "quantities": [
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "component": "Ext: Siding / Paint",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "component": "Plumbing: Bath Surrounds",
+      "quantities": [
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
