@@ -312,9 +312,9 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("True monthly cash flow", strip)
         self.assertIn("Monthly repair fund", strip)
         self.assertIn("Break-even rent", strip)
-        self.assertIn("Tap for full breakdown", strip)
-        self.assertIn("Tap to see drivers", strip)
-        self.assertIn("Tap for thresholds", strip)
+        self.assertIn("See the breakdown", strip)
+        self.assertIn("See what drives it", strip)
+        self.assertIn("What would work?", strip)
         self.assertIn('value="trueMonthlyCashFlow"', strip)
         self.assertIn('value="totalMonthlyCapexReserve"', strip)
         self.assertIn('value="breakevenGrossRent"', strip)
@@ -386,6 +386,27 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn(".repair-surprise-series", stylesheet)
         self.assertIn(".repair-event-marker", stylesheet)
         self.assertIn(".layer-copy.disclaimer.teaching-only", stylesheet)
+
+    def test_repair_fund_layer_surfaces_interest_earned_on_reserve(self) -> None:
+        payload = calculate_payload({})
+        trace = payload["result"]["traces"]["repairFund"]
+        cumulative_interest = sum(
+            row.get("interestEarned", 0) for row in trace["rows"]
+        )
+        self.assertGreater(cumulative_interest, 0)
+
+        response = handle_post("/ui/evidence", {"activeEvidenceLayer": "repairFund"})
+        body = response.body
+
+        self.assertIn("Repair fund APY (B20)", body)
+        self.assertIn("Interest earned Yr 0-10", body)
+        self.assertIn("Interest-bearing reserve account", body)
+        self.assertIn("not checking cash", body)
+        self.assertIn("<th>Interest earned</th>", body)
+        self.assertIn('class="evidence-card"', body)
+        self.assertIn('id="repair-fund-cards"', body)
+        year_one_interest = trace["rows"][1]["interestEarned"]
+        self.assertIn(f"${year_one_interest:,.0f}", body)
 
     def test_slice6_solver_decision_step_workbench_disclaimer(self) -> None:
         response = handle_post("/ui/step", {"activeStep": "decision"})
@@ -481,25 +502,34 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("cash position (l16 + initial)", body.lower())
         self.assertNotIn("<th>Rental path</th>", body)
 
-    def test_slice3_cash_flow_receipt_renders_engine_rows_and_signed_deductions(self) -> None:
+    def test_slice3_cash_flow_receipt_hides_engine_fields_in_reward_shows_in_drilldown(
+        self,
+    ) -> None:
         response = handle_post("/ui/evidence", {"activeEvidenceLayer": "cashFlow"})
-        receipt = response.body.split('id="cash-flow-receipt">', 1)[1].split(
-            "</div></section>",
+        cash_flow_layer = response.body.split('data-evidence-layer="cashFlow"', 1)[1].split(
+            "</section>",
             1,
         )[0]
+        reward = cash_flow_layer.split('id="cash-flow-receipt">', 1)[1].split(
+            '<details class="evidence-drilldown">',
+            1,
+        )[0]
+        drilldown = cash_flow_layer.split('<details class="evidence-drilldown">', 1)[1]
 
-        self.assertIn('class="receipt"', response.body)
-        self.assertIn("Expected monthly rent", receipt)
-        self.assertIn("Vacancy rate", receipt)
-        self.assertIn("Usable income", receipt)
-        self.assertIn("Monthly repair fund (snapshot)", receipt)
-        self.assertIn("True monthly cash flow (B40)", receipt)
-        self.assertIn('class="rcpt-row sub"', receipt)
-        self.assertIn('class="rcpt-row total-row"', receipt)
-        self.assertIn('class="rcpt-val ded">-$', receipt)
-        self.assertIn('class="rcpt-eng">actualGrossMonthlyRent</span>', receipt)
-        self.assertIn('class="rcpt-eng">totalMonthlyCapexReserve</span>', receipt)
-        self.assertIn('class="rcpt-val neg">-$', receipt)
+        self.assertIn('class="receipt evidence-reward"', response.body)
+        self.assertIn("Expected monthly rent", reward)
+        self.assertIn("Vacancy rate", reward)
+        self.assertIn("Usable income", reward)
+        self.assertIn("Monthly repair fund (snapshot)", reward)
+        self.assertIn("True monthly cash flow (B40)", reward)
+        self.assertIn('class="rcpt-row sub"', reward)
+        self.assertIn('class="rcpt-row total-row"', reward)
+        self.assertIn('class="rcpt-val ded">-$', reward)
+        self.assertIn('class="rcpt-val neg">-$', reward)
+        self.assertNotIn('class="rcpt-eng"', reward)
+        self.assertIn('class="rcpt-eng">actualGrossMonthlyRent</span>', drilldown)
+        self.assertIn('class="rcpt-eng">totalMonthlyCapexReserve</span>', drilldown)
+        self.assertIn("Show workbook math", response.body)
 
     def test_phase3_slice4_cash_flow_snapshot_labels_and_pro_forma_pointer(self) -> None:
         response = handle_post("/ui/evidence", {"activeEvidenceLayer": "cashFlow"})
@@ -551,30 +581,69 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn(".bar-tr", stylesheet)
         self.assertIn(".age-warn", stylesheet)
 
-    def test_slice3_what_works_cards_and_diagnostics_are_layer_local(self) -> None:
+    def test_slice3_what_works_reward_hides_ids_solver_note_in_drilldown(self) -> None:
         what_works = handle_post("/ui/evidence", {"activeEvidenceLayer": "whatWorks"})
-        diagnostics = handle_post("/ui/evidence", {"activeEvidenceLayer": "diagnostics"})
         stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+        body = what_works.body
 
-        self.assertIn('class="slv-grid" id="threshold-grid"', what_works.body)
-        self.assertIn('class="slv-card threshold-card threshold-warn"', what_works.body)
-        self.assertIn('class="threshold-id">breakEvenRent</p>', what_works.body)
-        self.assertIn("What rent would make monthly cash flow hit zero?", what_works.body)
-        self.assertIn('class="slv-v">$', what_works.body)
-        self.assertIn('class="slv-gap">$', what_works.body)
-        self.assertIn("fixtureContract.solverCasePolicy", what_works.body)
-        self.assertIn("app-side regression", what_works.body.lower())
-        self.assertIn('hx-post="/ui/solve-threshold"', what_works.body)
-
-        self.assertIn('class="diagnostics-drilldown" id="diagnostics-drilldown"', diagnostics.body)
-        self.assertIn("<span>Show table</span>", diagnostics.body)
-        self.assertIn('class="diag-tbl" id="diagnostics-table"', diagnostics.body)
-        self.assertIn("<th>Engine field</th><th>User label</th><th>UI value</th><th>Engine value</th><th>Workbook cell</th>", diagnostics.body)
-        self.assertIn("Dashboard!B6", diagnostics.body)
-        self.assertIn("dashboard.trueMonthlyCashFlow", diagnostics.body)
+        self.assertIn('class="slv-grid evidence-reward" id="threshold-grid"', body)
+        self.assertIn('class="slv-card threshold-card threshold-warn"', body)
+        self.assertNotIn('class="threshold-id">breakEvenRent</p>', body)
+        self.assertIn("What rent would make monthly cash flow hit zero?", body)
+        self.assertIn('class="slv-v">$', body)
+        self.assertIn('class="slv-gap">$', body)
+        self.assertIn('hx-post="/ui/solve-threshold"', body)
+        self.assertIn("Solver assumptions", body)
+        self.assertIn("fixtureContract.solverCasePolicy", body)
+        self.assertIn("app-side regression", body.lower())
         self.assertIn(".slv-grid", stylesheet)
-        self.assertIn(".diagnostics-drilldown", stylesheet)
-        self.assertIn(".diag-tbl", stylesheet)
+        self.assertIn(".evidence-drilldown", stylesheet)
+
+    def test_stakeholder_ui_excludes_debug_diagnostics_and_metric_detail(self) -> None:
+        response = handle_get("/")
+        body = response.body
+
+        self.assertNotIn('class="debug-panel"', body)
+        self.assertNotIn("Calculation diagnostics", body)
+        self.assertNotIn('data-evidence-layer="diagnostics"', body)
+        self.assertNotIn('data-evidence-layer="metricDetail"', body)
+        self.assertNotIn('class="diagnostics-drilldown"', body)
+
+    def test_metric_strip_reserve_navigates_to_repair_drivers(self) -> None:
+        response = handle_post(
+            "/ui/metric",
+            {"activeMetricField": "totalMonthlyCapexReserve"},
+        )
+        body = response.body
+
+        self.assertIn('name="activeEvidenceLayer" value="repairDrivers"', body)
+        self.assertIn('id="evidence-title">Repair Drivers</h2>', body)
+        self.assertIn('data-evidence-layer="repairDrivers"', body)
+        self.assertNotIn('data-evidence-layer="repairFund"', body.split(
+            'data-evidence-layer="repairDrivers"',
+            1,
+        )[0])
+
+    def test_metric_strip_cash_flow_focuses_receipt_reward(self) -> None:
+        response = handle_post(
+            "/ui/metric",
+            {"activeMetricField": "trueMonthlyCashFlow"},
+        )
+        cash_flow_layer = response.body.split('data-evidence-layer="cashFlow"', 1)[1].split(
+            "</section>",
+            1,
+        )[0]
+
+        self.assertIn('name="activeEvidenceLayer" value="cashFlow"', response.body)
+        self.assertIn('class="receipt evidence-reward evidence-focus"', cash_flow_layer)
+
+    def test_walkthrough_follow_step_opens_cash_flow_stability(self) -> None:
+        response = handle_post("/ui/step", {"activeStep": "walkthrough"})
+        body = response.body
+
+        self.assertIn('id="evidence-title">Cash Flow Stability</h2>', body)
+        self.assertIn('id="evidence-mode">Following Walkthrough</p>', body)
+        self.assertIn('data-evidence-layer="cashFlowStability"', body)
 
     def test_phase5_slice6_cash_flow_stability_evidence_layer_renders(self) -> None:
         response = handle_post("/ui/evidence", {"activeEvidenceLayer": "cashFlowStability"})
@@ -608,6 +677,26 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn('hx-post="/ui/new-walkthrough"', body)
         self.assertIn('name="overlapWarningLatched"', body)
         self.assertIn('name="overlapWarningAgeSnapshotKey"', body)
+
+    def test_offer_ready_stability_cta_navigates_to_cash_flow_stability(self) -> None:
+        walkthrough = handle_post("/ui/step", {"activeStep": "walkthrough"})
+        self.assertIn('class="offer-ready-stability-cta"', walkthrough.body)
+        self.assertIn("See how reserves vs debt shock compare", walkthrough.body)
+        self.assertIn(
+            'name="activeEvidenceLayer" value="cashFlowStability" hx-post="/ui/evidence"',
+            walkthrough.body,
+        )
+
+        navigated = handle_post(
+            "/ui/evidence",
+            {
+                "activeStep": "walkthrough",
+                "activeEvidenceLayer": "cashFlowStability",
+                "evidenceFollowsStep": "false",
+            },
+        )
+        self.assertIn('id="evidence-title">Cash Flow Stability</h2>', navigated.body)
+        self.assertIn('data-evidence-layer="cashFlowStability"', navigated.body)
 
     def test_phase5_slice6_offer_ready_hidden_on_other_steps(self) -> None:
         response = handle_post("/ui/step", {"activeStep": "listing"})

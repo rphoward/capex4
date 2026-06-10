@@ -21,6 +21,7 @@ from capex3.core.teaching.workbench_metadata import (
     JOURNEY_STAGES,
     METRIC_GUIDANCE,
     METRIC_SOURCE_NOTES,
+    METRIC_STRIP_NAVIGATION,
     SOLVER_METRICS,
     SOLVER_VARIABLES,
     STAGE_EVIDENCE_MAPPING,
@@ -85,6 +86,7 @@ def workbench_payload() -> dict[str, object]:
                 }
                 for field, label, value_kind, evidence_layer_id in METRIC_GUIDANCE
             ],
+            "metricStripNavigation": deepcopy(METRIC_STRIP_NAVIGATION),
             "evidenceMetricFields": deepcopy(EVIDENCE_METRIC_FIELDS),
             "calculationLinkageFields": [
                 {

@@ -240,6 +240,36 @@ INPUT_FIELD_CONTROLS = {
     },
 }
 
+METRIC_STRIP_NAVIGATION = [
+    {
+        "field": "trueMonthlyCashFlow",
+        "layer": "cashFlow",
+        "cta": "See the breakdown",
+        "focus": "receipt",
+    },
+    {
+        "field": "totalMonthlyCapexReserve",
+        "layer": "repairDrivers",
+        "cta": "See what drives it",
+        "focus": "drivers",
+    },
+    {
+        "field": "breakevenGrossRent",
+        "layer": "whatWorks",
+        "cta": "What would work?",
+        "focus": "thresholds",
+    },
+]
+
+_METRIC_STRIP_LAYER_BY_FIELD = {
+    item["field"]: item["layer"] for item in METRIC_STRIP_NAVIGATION
+}
+
+
+def _metric_evidence_layer(field: str, default: str) -> str:
+    return _METRIC_STRIP_LAYER_BY_FIELD.get(field, default)
+
+
 EVIDENCE_CONCEPTS = [
     {
         "id": "tenYear",
@@ -250,6 +280,16 @@ EVIDENCE_CONCEPTS = [
             "10-year view."
         ),
         "shortLabel": "10",
+    },
+    {
+        "id": "cashFlow",
+        "title": "Monthly Cash Flow Breakdown",
+        "concept": "monthly cash-flow breakdown",
+        "description": (
+            "Follow the money from expected rent to true monthly cash flow after "
+            "repair reserves and debt."
+        ),
+        "shortLabel": "$",
     },
     {
         "id": "repairDrivers",
@@ -272,16 +312,7 @@ EVIDENCE_CONCEPTS = [
         ),
         "shortLabel": "F",
     },
-    {
-        "id": "cashFlow",
-        "title": "Monthly Cash Flow Breakdown",
-        "concept": "monthly cash-flow breakdown",
-        "description": (
-            "Follow the money from expected rent to true monthly cash flow after "
-            "repair reserves and debt."
-        ),
-        "shortLabel": "$",
-    },
+    deepcopy(CASH_FLOW_STABILITY_EVIDENCE_CONCEPT),
     {
         "id": "whatWorks",
         "title": "What Would Work?",
@@ -292,14 +323,13 @@ EVIDENCE_CONCEPTS = [
         ),
         "shortLabel": "?",
     },
-    deepcopy(CASH_FLOW_STABILITY_EVIDENCE_CONCEPT),
 ]
 
 STAGE_EVIDENCE_MAPPING = {
     "decision": "whatWorks",
     "listing": "tenYear",
     "loan": "cashFlow",
-    "walkthrough": "repairDrivers",
+    "walkthrough": "cashFlowStability",
 }
 
 SOLVER_VARIABLES = [
@@ -382,18 +412,33 @@ SOLVER_METRICS = [
 ]
 
 METRIC_GUIDANCE = [
-    ("trueMonthlyCashFlow", "True monthly cash flow (B40)", "moneyCents", "cashFlow"),
-    ("totalMonthlyCapexReserve", "Monthly repair fund", "moneyCents", "repairFund"),
-    ("breakevenGrossRent", "Break-even rent", "moneyCents", "whatWorks"),
+    (
+        "trueMonthlyCashFlow",
+        "True monthly cash flow (B40)",
+        "moneyCents",
+        _metric_evidence_layer("trueMonthlyCashFlow", "cashFlow"),
+    ),
+    (
+        "totalMonthlyCapexReserve",
+        "Monthly repair fund",
+        "moneyCents",
+        _metric_evidence_layer("totalMonthlyCapexReserve", "repairDrivers"),
+    ),
+    (
+        "breakevenGrossRent",
+        "Break-even rent",
+        "moneyCents",
+        _metric_evidence_layer("breakevenGrossRent", "whatWorks"),
+    ),
     ("targetCapExReserve", "Target CapEx Reserve", "money", "cashFlow"),
     ("cashOnCashReturn", "Cash-on-Cash Return", "percent", "whatWorks"),
     ("year10Roi", "Year-10 ROI (B28)", "percent", "tenYear"),
-    ("capRate", "Cap Rate", "percent", "metricDetail"),
+    ("capRate", "Cap Rate", "percent", "cashFlow"),
     ("debtServiceCoverageRatio", "DSCR", "number", "cashFlow"),
     ("yearOneTotalReturnOnEquity", "Year 1 Total Return on Equity", "percent", "tenYear"),
     ("rentToValueRatio", "Rent-to-Value Ratio", "percent", "cashFlow"),
-    ("marketRent", "Market Rent", "moneyCents", "metricDetail"),
-    ("vacancyRate", "Vacancy Rate", "percent", "metricDetail"),
+    ("marketRent", "Market Rent", "moneyCents", "tenYear"),
+    ("vacancyRate", "Vacancy Rate", "percent", "cashFlow"),
     ("netOperatingIncomeMonthly", "Income Before Debt", "moneyCents", "cashFlow"),
     ("monthlyMortgagePI", "Loan Payment", "moneyCents", "cashFlow"),
     ("totalInitialInvestment", "Cash Needed Up Front", "money", "tenYear"),
@@ -419,7 +464,6 @@ EVIDENCE_METRIC_FIELDS = {
         "debtServiceCoverageRatio",
         "rentToValueRatio",
     ],
-    "diagnostics": ["marketRent", "vacancyRate", "totalMonthlyCapexReserve"],
     "repairDrivers": [
         "totalMonthlyCapexReserve",
         "netOperatingIncomeMonthly",

@@ -620,7 +620,10 @@ class PresentationAssetMigrationTest(unittest.TestCase):
         self.assertIn('id="solver-variable"', index.body)
         self.assertIn('id="solver-metric"', index.body)
         self.assertIn('data-evidence-layer="repairDrivers"', index.body)
-        self.assertIn('id="diagnostic-summary"', index.body)
+        self.assertIn('class="evidence-drilldown"', index.body)
+        self.assertIn("See the breakdown", index.body)
+        self.assertNotIn('id="diagnostic-summary"', index.body)
+        self.assertNotIn('class="debug-panel"', index.body)
         self.assertNotIn("const fieldMeta", index.body)
         self.assertNotIn("const variableLabels", index.body)
 

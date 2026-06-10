@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Mapping
 
 from capex3.core.teaching.calculation_result_traces import SOLVER_DISCLAIMER
+from capex3.core.teaching.evidence_presentation import drilldown_title as _drilldown_title
 from capex3.core.teaching.offer_ready_evidence import build_offer_ready_copy
 from capex3.presentation.htmx_format import (
     _attr,
@@ -14,6 +15,8 @@ from capex3.presentation.htmx_format import (
     _hx_post,
 )
 from capex3.presentation.htmx_evidence import (
+    _evidence_drilldown,
+    _evidence_focus_class,
     _result_trace,
     _summary_cards_html,
     _trace_collection,
@@ -70,6 +73,10 @@ def _offer_ready_panel(state: UiState) -> str:
 </div>"""
 
     reserve_solver = _offer_ready_reserve_solver_html(state, copy)
+    stability_cta = f"""
+<div class="offer-ready-stability-cta">
+  <button type="button" name="activeEvidenceLayer" value="cashFlowStability" {_hx_post("/ui/evidence")}>See how reserves vs debt shock compare</button>
+</div>"""
 
     return f"""
 <div class="offer-ready-panel" id="offer-ready-panel">
@@ -78,6 +85,7 @@ def _offer_ready_panel(state: UiState) -> str:
     <button id="new-walkthrough-button" type="button" {_hx_post("/ui/new-walkthrough")}>New walkthrough</button>
   </div>
   <div class="offer-ready-status {_attr(survival_class)}">{_summary_cards_html(cards)}</div>
+  {stability_cta}
   {warnings}
   {reserve_solver}
 </div>"""
@@ -141,14 +149,35 @@ def _cash_flow_stability_section(state: UiState) -> str:
     )
     source_note = trace.get("sourceNote") or "App-only resilience evidence."
     meta_line = "App-only resilience · not workbook-canonical"
+    ledger_html = f"""
+<p class="layer-copy disclaimer app-regression">
+  <strong>{_html(meta_line)}</strong> — {_html(str(source_note))}
+</p>
+<div class="tbl-scroll">
+  <table class="ledger-tbl" id="cash-flow-stability-refi-table">
+    <thead>
+      <tr><th>Year</th><th>Emergency gap</th><th>Principal</th><th>Monthly payment</th><th>Prior schedule active</th><th>Start month</th></tr>
+    </thead>
+    <tbody>{refi_rows}</tbody>
+  </table>
+</div>
+<div class="tbl-scroll">
+  <table class="ledger-tbl" id="cash-flow-stability-payment-table">
+    <thead>
+      <tr><th>Month</th><th>Debt service</th><th>Active refi year</th></tr>
+    </thead>
+    <tbody>{payment_rows}</tbody>
+  </table>
+</div>"""
+    drilldown = _evidence_drilldown(
+        _drilldown_title(trace, "Emergency ledger tables"),
+        ledger_html,
+    )
     return f"""
 <section class="evidence-layer" data-evidence-layer="cashFlowStability"{hidden}>
   <p class="layer-copy">{_html(framing)}</p>
-  <div id="cash-flow-stability-cards" class="evidence-summary cash-flow-stability-cards">{_summary_cards_html(_trace_summary_cards(trace))}</div>
-  <p class="layer-copy disclaimer app-regression">
-    <strong>{_html(meta_line)}</strong> — {_html(str(source_note))}
-  </p>
-  <div class="two-path-comparison" id="cash-flow-stability-two-path">
+  <div id="cash-flow-stability-cards" class="evidence-summary cash-flow-stability-cards evidence-reward">{_summary_cards_html(_trace_summary_cards(trace))}</div>
+  <div class="two-path-comparison evidence-reward" id="cash-flow-stability-two-path">
     <div class="two-path-column">
       <h3>{_html(planned.get("title", "Planned reserve path"))}</h3>
       <div class="receipt">{planned_rows}</div>
@@ -158,22 +187,7 @@ def _cash_flow_stability_section(state: UiState) -> str:
       <div class="receipt">{debt_shock_rows}</div>
     </div>
   </div>
-  <div class="tbl-scroll">
-    <table class="ledger-tbl" id="cash-flow-stability-refi-table">
-      <thead>
-        <tr><th>Year</th><th>Emergency gap</th><th>Principal</th><th>Monthly payment</th><th>Prior schedule active</th><th>Start month</th></tr>
-      </thead>
-      <tbody>{refi_rows}</tbody>
-    </table>
-  </div>
-  <div class="tbl-scroll">
-    <table class="ledger-tbl" id="cash-flow-stability-payment-table">
-      <thead>
-        <tr><th>Month</th><th>Debt service</th><th>Active refi year</th></tr>
-      </thead>
-      <tbody>{payment_rows}</tbody>
-    </table>
-  </div>
+  {drilldown}
 </section>"""
 
 
@@ -215,22 +229,36 @@ def _what_works_section(state: UiState) -> str:
     hidden = _hidden_attr_for_layer(state, "whatWorks")
     trace = _result_trace(state, "whatWorks")
     questions = _trace_collection(trace, ("questions", "thresholdQuestions", "solverQuestions"))
-    threshold_cards = "".join(_threshold_card(state, question) for question in questions)
+    focus_class = _evidence_focus_class(state, "whatWorks", "thresholds")
+    threshold_cards = "".join(
+        _threshold_card(state, question, show_id=False) for question in questions
+    )
     if not threshold_cards:
         threshold_cards = '<div class="error-text">Evidence trace unavailable.</div>'
     layer_copy = trace.get("layerCopy") or SOLVER_DISCLAIMER["layerCopy"]
     solver_note = trace.get("solverNote") or SOLVER_DISCLAIMER["solverNote"]
     disclaimer = _solver_disclaimer_html(trace)
+    drilldown_body = (
+        f'{disclaimer}<div class="slv-note">{_html(str(solver_note))}</div>'
+    )
+    drilldown = _evidence_drilldown(
+        _drilldown_title(trace, "Solver assumptions"),
+        drilldown_body,
+    )
     return f"""
 <section class="evidence-layer" data-evidence-layer="whatWorks"{hidden}>
-  {disclaimer}
   <p class="layer-copy">{_html(str(layer_copy))}</p>
-  <div class="slv-grid" id="threshold-grid">{threshold_cards}</div>
-  <div class="slv-note">{_html(str(solver_note))}</div>
+  <div class="slv-grid evidence-reward{focus_class}" id="threshold-grid">{threshold_cards}</div>
+  {drilldown}
 </section>"""
 
 
-def _threshold_card(state: UiState, question: Mapping[str, object]) -> str:
+def _threshold_card(
+    state: UiState,
+    question: Mapping[str, object],
+    *,
+    show_id: bool = True,
+) -> str:
     question_id = str(question.get("id") or "")
     label = question.get("label") or question.get("title") or question.get("question") or question_id
     detail = question.get("detail") or question.get("description") or question.get("prompt") or question.get("target") or ""
@@ -249,9 +277,12 @@ def _threshold_card(state: UiState, question: Mapping[str, object]) -> str:
     preview = ""
     if state.solver_preview and state.solver_preview.get("source") == f"threshold:{question_id}":
         preview = _solver_preview_html(state.solver_preview)
+    question_id_html = (
+        f'<p class="threshold-id">{_html(question_id)}</p>' if show_id and question_id else ""
+    )
     return f"""
 <div class="slv-card threshold-card {state_class}">
-  <p class="threshold-id">{_html(question_id)}</p>
+  {question_id_html}
   <p class="slv-q">{_html(detail or label)}</p>
   <p class="slv-v">{_html(solved_text)}</p>
   <p class="slv-gap">{_html(gap_text)}</p>

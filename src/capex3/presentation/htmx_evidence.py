@@ -1,42 +1,22 @@
 from __future__ import annotations
 
-import json
 from typing import Mapping, Sequence
 
-from capex3.core.teaching.calculation_result_traces import SOLVER_DISCLAIMER
-
+from capex3.core.teaching.evidence_presentation import drilldown_title as _drilldown_title
 from capex3.presentation.htmx_format import (
     _attr,
-    _display_value,
     _format,
     _format_receipt_value,
     _html,
     _hx_post,
 )
 from capex3.presentation.htmx_state import (
-    SOURCE_METRIC_STRIP_COPY,
     UiState,
     _evidence_layers,
     _hidden_attr_for_layer,
-    _input_fields_by_id,
-    _metric_by_field,
+    _metric_strip_navigation_by_field,
     _source_metric_strip_fields,
 )
-
-UTILITY_EVIDENCE_LAYERS = [
-    {
-        "id": "metricDetail",
-        "title": "Field Detail",
-        "description": "A closer look at the selected field from the latest engine result.",
-        "showInTabs": False,
-    },
-    {
-        "id": "diagnostics",
-        "title": "Diagnostics",
-        "description": "Inspect the UI-to-engine linkage without making raw JSON the main experience.",
-        "shortLabel": "D",
-    },
-]
 
 
 def _evidence_tabs(state: UiState) -> str:
@@ -67,17 +47,20 @@ def _metric_cards(state: UiState) -> str:
         if field == state.active_metric_field or metric.get("evidenceLayerId") == state.active_evidence_layer:
             classes.append("active")
         expanded = "true" if field == state.active_metric_field else "false"
+        nav = _metric_strip_navigation_by_field(state.workbench).get(field, {})
+        cta = str(nav.get("cta") or "Details")
         cards.append(
             f"""<button type="button" class="{' '.join(classes)}" aria-expanded="{expanded}" name="activeMetricField" value="{_attr(field)}" {_hx_post("/ui/metric")}>
   <strong>{_html(metric.get("label", field))}</strong>
   <span>{_html(_format(value, metric.get("kind") or metric.get("valueKind")))}</span>
-  <small aria-hidden="true">{_html(SOURCE_METRIC_STRIP_COPY.get(field, 'Details'))}</small>
+  <small aria-hidden="true">{_html(cta)}</small>
 </button>"""
         )
     return "\n".join(cards)
 
 
 def _evidence_sections(state: UiState) -> str:
+    # Circular import: htmx_offer_ready imports helpers from this module.
     from capex3.presentation.htmx_offer_ready import (
         _cash_flow_stability_section,
         _what_works_section,
@@ -85,34 +68,69 @@ def _evidence_sections(state: UiState) -> str:
 
     return "\n".join(
         [
-            _cash_flow_section(state),
-            _cash_flow_stability_section(state),
-            _metric_detail_section(state),
-            _repair_fund_section(state),
-            _repair_drivers_section(state),
             _ten_year_section(state),
+            _cash_flow_section(state),
+            _repair_drivers_section(state),
+            _repair_fund_section(state),
+            _cash_flow_stability_section(state),
             _what_works_section(state),
-            _diagnostics_section(state),
         ]
     )
+
+
+def _evidence_drilldown(title: str, inner_html: str) -> str:
+    return f"""
+<details class="evidence-drilldown">
+  <summary><span>{_html(title)}</span></summary>
+  <div class="evidence-drilldown-body">{inner_html}</div>
+</details>"""
+
+
+def _evidence_focus_class(state: UiState, layer_id: str, focus_key: str) -> str:
+    if state.active_evidence_layer != layer_id or not state.active_metric_field:
+        return ""
+    nav = _metric_strip_navigation_by_field(state.workbench).get(
+        state.active_metric_field,
+        {},
+    )
+    if nav.get("focus") == focus_key:
+        return " evidence-focus"
+    return ""
 
 
 def _cash_flow_section(state: UiState) -> str:
     hidden = _hidden_attr_for_layer(state, "cashFlow")
     trace = _result_trace(state, "cashFlow")
     rows = _trace_collection(trace, ("rows", "lines"))
+    empty_row = '<div class="rcpt-row"><span>Evidence trace unavailable.</span><span class="rcpt-val">-</span></div>'
     if rows:
-        receipt_rows = "".join(_cash_flow_receipt_row(row) for row in rows)
+        receipt_rows = "".join(
+            _cash_flow_receipt_row(row, show_engine=False) for row in rows
+        )
+        drilldown_rows = "".join(
+            _cash_flow_receipt_row(row, show_engine=True) for row in rows
+        )
     else:
-        receipt_rows = '<div class="rcpt-row"><span>Evidence trace unavailable.</span><span class="rcpt-val">-</span></div>'
+        receipt_rows = empty_row
+        drilldown_rows = empty_row
+    focus_class = _evidence_focus_class(state, "cashFlow", "receipt")
+    drilldown = _evidence_drilldown(
+        _drilldown_title(trace, "Show workbook math"),
+        f'<div class="receipt">{drilldown_rows}</div>',
+    )
     return f"""
 <section class="evidence-layer" data-evidence-layer="cashFlow"{hidden}>
   <p class="layer-copy">This layer shows the workbook dashboard snapshot (B40): true monthly cash flow after deducting the full monthly repair reserve every month—not the post-cap annual contribution from the pro forma. After the reserve cap fills, cash improvement shows up in pro forma accumulatedTrueCashFlow (L16); open the 10-Year Story evidence layer to follow that path.</p>
-  <div class="receipt" id="cash-flow-receipt">{receipt_rows}</div>
+  <div class="receipt evidence-reward{focus_class}" id="cash-flow-receipt">{receipt_rows}</div>
+  {drilldown}
 </section>"""
 
 
-def _cash_flow_receipt_row(row: Mapping[str, object]) -> str:
+def _cash_flow_receipt_row(
+    row: Mapping[str, object],
+    *,
+    show_engine: bool | None = None,
+) -> str:
     receipt_kind = str(row.get("receiptKind") or "")
     row_class = "total-row" if receipt_kind == "total" else "sub" if receipt_kind == "subtotal" else ""
     value = _trace_value(row, ("value", "amount"))
@@ -122,7 +140,9 @@ def _cash_flow_receipt_row(row: Mapping[str, object]) -> str:
     elif receipt_kind == "total":
         value_class += " neg" if isinstance(value, (int, float)) and value < 0 else " pos"
     engine = ""
-    if receipt_kind not in {"subtotal", "total"}:
+    if show_engine is None:
+        show_engine = bool(row.get("showEngineField"))
+    if show_engine and receipt_kind not in {"subtotal", "total"}:
         engine_field = row.get("engineField") or row.get("source") or row.get("formula") or ""
         engine = f'<span class="rcpt-eng">{_html(engine_field)}</span>' if engine_field else ""
     return f"""
@@ -133,51 +153,16 @@ def _cash_flow_receipt_row(row: Mapping[str, object]) -> str:
 </div>"""
 
 
-def _metric_detail_section(state: UiState) -> str:
-    hidden = _hidden_attr_for_layer(state, "metricDetail")
-    selected = _metric_by_field(state.workbench).get(state.active_metric_field)
-    dashboard = state.result.get("dashboard", {}) if state.result else {}
-    if selected:
-        cards = _summary_cards_html(
-            [
-                {
-                    "label": selected.get("label"),
-                    "value": _format(
-                        dashboard.get(selected["field"]),
-                        selected.get("kind") or selected.get("valueKind"),
-                    ),
-                    "note": selected.get("sourceNote") or "This value comes from the latest engine result.",
-                },
-                {
-                    "label": "Engine field",
-                    "value": selected["field"],
-                    "note": "Stable workbook/parity name.",
-                },
-            ]
-        )
-    else:
-        cards = _summary_cards_html(
-            [
-                {
-                    "label": "No field selected",
-                    "value": "Tap a snapshot field",
-                    "note": "Fields with a details caret open their supporting evidence here.",
-                }
-            ]
-        )
-    return f"""
-<section class="evidence-layer" data-evidence-layer="metricDetail"{hidden}>
-  <div id="metric-detail-summary" class="evidence-summary">{cards}</div>
-</section>"""
-
-
 def _repair_fund_section(state: UiState) -> str:
     hidden = _hidden_attr_for_layer(state, "repairFund")
     trace = _result_trace(state, "repairFund")
     rows = _trace_collection(trace, ("rows", "years"))
     table_rows = "".join(_repair_fund_year_row(row) for row in rows)
     if not table_rows:
-        table_rows = '<tr><td>Evidence trace unavailable.</td><td></td><td></td><td></td><td></td><td></td></tr>'
+        table_rows = (
+            '<tr><td>Evidence trace unavailable.</td><td></td><td></td>'
+            "<td></td><td></td><td></td><td></td></tr>"
+        )
     source_note = trace.get("sourceNote") or "Source: repairReservePathTrace from Python-owned calculator data."
     teaching_meta = []
     if trace.get("teachingOnly"):
@@ -188,20 +173,27 @@ def _repair_fund_section(state: UiState) -> str:
     if trace.get("workbookCanonical") is False:
         teaching_meta.append("not workbook-canonical")
     meta_line = " · ".join(teaching_meta)
+    table_html = f"""
+<div class="tbl-scroll">
+  <table class="fund-tbl" id="repair-fund-table">
+    <thead>
+      <tr><th>Year</th><th>Contribution</th><th>Interest earned</th><th>Repairs</th><th>Reserve balance</th><th>No-reserve shock</th><th>Status</th></tr>
+    </thead>
+    <tbody>{table_rows}</tbody>
+  </table>
+</div>"""
+    disclaimer = f"""
+<p class="layer-copy disclaimer teaching-only"{' data-decision-id="' + _attr(str(decision_id)) + '"' if decision_id else ""}>
+  <strong>{_html(meta_line)}</strong> — {_html(source_note)}
+</p>"""
+    drilldown = _evidence_drilldown(
+        _drilldown_title(trace, "Year-by-year table"),
+        disclaimer + table_html,
+    )
     return f"""
 <section class="evidence-layer" data-evidence-layer="repairFund"{hidden}>
-  <div id="repair-fund-cards" class="evidence-summary repair-fund-cards">{_summary_cards_html(_trace_summary_cards(trace))}</div>
-  <p class="layer-copy disclaimer teaching-only"{' data-decision-id="' + _attr(str(decision_id)) + '"' if decision_id else ""}>
-    <strong>{_html(meta_line)}</strong> — {_html(source_note)}
-  </p>
-  <div class="tbl-scroll">
-    <table class="fund-tbl" id="repair-fund-table">
-      <thead>
-        <tr><th>Year</th><th>Contribution</th><th>Repairs</th><th>Reserve balance</th><th>No-reserve shock</th><th>Status</th></tr>
-      </thead>
-      <tbody>{table_rows}</tbody>
-    </table>
-  </div>
+  <div id="repair-fund-cards" class="evidence-summary repair-fund-cards evidence-reward">{_summary_cards_html(_trace_summary_cards(trace))}</div>
+  {drilldown}
 </section>"""
 
 
@@ -219,6 +211,7 @@ def _repair_fund_year_row(row: Mapping[str, object]) -> str:
     return f"""<tr>
   <td>{_html(row.get("year"))}</td>
   <td class="num">{_html(_format(row.get("annualContribution"), "moneyCents"))}</td>
+  <td class="num">{_html(_format(row.get("interestEarned"), "money"))}</td>
   <td class="num">{_html(_format(row.get("repairCost"), "money"))}</td>
   <td class="num">{_html(_format(row.get("endingBalance"), "money"))}</td>
   <td class="num">{_html(_format(row.get("noReserveSurpriseCost"), "money"))}</td>
@@ -233,17 +226,38 @@ def _repair_drivers_section(state: UiState) -> str:
     table_rows = "".join(_repair_driver_row(row) for row in rows)
     if not table_rows:
         table_rows = '<tr><td>Evidence trace unavailable.</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'
+    top_rows = rows[:5]
+    reward_table_rows = "".join(_repair_driver_row(row) for row in top_rows)
+    if not reward_table_rows:
+        reward_table_rows = table_rows
+    focus_class = _evidence_focus_class(state, "repairDrivers", "drivers")
+    reward_table = f"""
+<div class="tbl-scroll">
+  <table class="drv-tbl" id="repair-drivers-reward-table">
+    <thead>
+      <tr><th>Repair item</th><th>Monthly reserve</th><th>Share</th><th>Quantity</th><th>Age / life</th><th>Remaining</th><th>Source</th></tr>
+    </thead>
+    <tbody>{reward_table_rows}</tbody>
+  </table>
+</div>"""
+    full_table = f"""
+<div class="tbl-scroll">
+  <table class="drv-tbl" id="repair-drivers-table">
+    <thead>
+      <tr><th>Repair item</th><th>Monthly reserve</th><th>Share</th><th>Quantity</th><th>Age / life</th><th>Remaining</th><th>Source</th></tr>
+    </thead>
+    <tbody>{table_rows}</tbody>
+  </table>
+</div>"""
+    drilldown = _evidence_drilldown(
+        _drilldown_title(trace, "Full component table"),
+        full_table,
+    )
     return f"""
 <section class="evidence-layer" data-evidence-layer="repairDrivers"{hidden}>
-  <div id="repair-drivers-cards" class="evidence-summary repair-driver-cards">{_summary_cards_html(_trace_summary_cards(trace))}</div>
-  <div class="tbl-scroll">
-    <table class="drv-tbl" id="repair-drivers-table">
-      <thead>
-        <tr><th>Repair item</th><th>Monthly reserve</th><th>Share</th><th>Quantity</th><th>Age / life</th><th>Remaining</th><th>Source</th></tr>
-      </thead>
-      <tbody>{table_rows}</tbody>
-    </table>
-  </div>
+  <div id="repair-drivers-cards" class="evidence-summary repair-driver-cards evidence-reward{focus_class}">{_summary_cards_html(_trace_summary_cards(trace))}</div>
+  {reward_table}
+  {drilldown}
 </section>"""
 
 
@@ -282,23 +296,6 @@ def _repair_driver_share_bar(share: object) -> str:
 </div>"""
 
 
-def _repair_driver_details(trace: Mapping[str, object]) -> str:
-    cards = _trace_receipt_cards(trace)
-    if not cards:
-        return """
-<div>
-  <strong>Evidence trace unavailable</strong>
-  <span>Run a calculation with core repair-driver trace data.</span>
-</div>"""
-    return "".join(
-        f"""<div>
-  <strong>{_html(card["label"])}</strong>
-  <span>{_html(" | ".join(filter(None, [card["value"], card["note"]])))}</span>
-</div>"""
-        for card in cards
-    )
-
-
 def _ten_year_section(state: UiState) -> str:
     hidden = _hidden_attr_for_layer(state, "tenYear")
     trace = _result_trace(state, "tenYear")
@@ -314,28 +311,34 @@ def _ten_year_section(state: UiState) -> str:
             f'<tr><td colspan="{empty_columns}">Evidence trace unavailable.</td></tr>'
         )
     cards = _trace_summary_cards(trace) + _trace_receipt_cards(trace)
+    table_html = f"""
+<div class="table-wrap">
+  <table class="evidence-table">
+    <thead><tr>
+      <th>Year</th>
+      <th>Liquidation wealth (L17)</th>
+      <th>Accumulated cash (L16)</th>
+      <th>Annual reserve contribution</th>
+      <th>Accumulated reserve (L15)</th>
+      <th>Future property value (B23)</th>
+      <th>Remaining loan balance (B24)</th>
+      <th>Cost of sale (B25)</th>
+      <th>Net proceeds (B26)</th>
+      <th>Cash position (L16 + initial)</th>
+      <th>Money market</th>
+      <th>Conservative IRA</th>
+    </tr></thead>
+    <tbody id="ten-year-table">{table_rows}</tbody>
+  </table>
+</div>"""
+    drilldown = _evidence_drilldown(
+        _drilldown_title(trace, "10-year table"),
+        table_html,
+    )
     return f"""
 <section class="evidence-layer" data-evidence-layer="tenYear"{hidden}>
-  <div id="ten-year-summary" class="evidence-summary">{_summary_cards_html(cards)}</div>
-  <div class="table-wrap">
-    <table class="evidence-table">
-      <thead><tr>
-        <th>Year</th>
-        <th>Liquidation wealth (L17)</th>
-        <th>Accumulated cash (L16)</th>
-        <th>Annual reserve contribution</th>
-        <th>Accumulated reserve (L15)</th>
-        <th>Future property value (B23)</th>
-        <th>Remaining loan balance (B24)</th>
-        <th>Cost of sale (B25)</th>
-        <th>Net proceeds (B26)</th>
-        <th>Cash position (L16 + initial)</th>
-        <th>Money market</th>
-        <th>Conservative IRA</th>
-      </tr></thead>
-      <tbody id="ten-year-table">{table_rows}</tbody>
-    </table>
-  </div>
+  <div id="ten-year-summary" class="evidence-summary evidence-reward">{_summary_cards_html(cards)}</div>
+  {drilldown}
 </section>"""
 
 
@@ -364,116 +367,6 @@ def _ten_year_table_row(
   <td>{_html(_trace_formatted_value(row, ("moneyMarketComparison", "moneyMarket"), "money"))}</td>
   <td>{_html(_trace_formatted_value(row, ("conservativeIraComparison", "conservativeIra"), "money"))}</td>
 </tr>"""
-
-
-def _diagnostics_section(state: UiState) -> str:
-    hidden = _hidden_attr_for_layer(state, "diagnostics")
-    workbook_source = "-"
-    if state.result:
-        workbook_source = state.result.get("audit", {}).get("sourceWorkbook", "fixture model")
-    cards = [
-        {
-            "label": "Tracked UI links",
-            "value": str(len(state.workbench.get("calculationLinkageFields", []))),
-            "note": "Fields with raw, sent, normalized, and output values.",
-        },
-        {
-            "label": "Rendered input version",
-            "value": "0",
-            "note": f"Latest change: {state.last_input_change_reason or 'none'}",
-        },
-        {
-            "label": "Workbook source",
-            "value": workbook_source,
-            "note": "Diagnostics remain downstream of engine output.",
-        },
-    ]
-    diagnostic_rows = _diagnostic_trace_rows(state)
-    return f"""
-<section class="evidence-layer" data-evidence-layer="diagnostics"{hidden}>
-  <div id="diagnostic-summary" class="evidence-summary">{_summary_cards_html(cards)}</div>
-  <details class="diagnostics-drilldown" id="diagnostics-drilldown">
-    <summary>
-      <span>Show table</span>
-      <small>Raw engine traceability from calculationLinkageFields.</small>
-    </summary>
-    <div class="tbl-scroll">
-      <table class="diag-tbl" id="diagnostics-table">
-        <thead>
-          <tr><th>Engine field</th><th>User label</th><th>UI value</th><th>Engine value</th><th>Workbook cell</th></tr>
-        </thead>
-        <tbody>{diagnostic_rows}</tbody>
-      </table>
-    </div>
-  </details>
-</section>"""
-
-
-def _diagnostic_trace_rows(state: UiState) -> str:
-    if not state.result:
-        return '<tr><td>Evidence trace unavailable.</td><td></td><td></td><td></td><td></td></tr>'
-    rows = []
-    for field in state.workbench.get("calculationLinkageFields", []):
-        input_field = field.get("inputField")
-        rows.append(
-            f"""<tr>
-  <td class="mono">{_html(field.get("outputPath") or field.get("normalizedPath") or "")}</td>
-  <td>{_html(field.get("label", ""))}</td>
-  <td class="mono">{_html(_display_value(state.inputs.get(input_field)))}</td>
-  <td class="mono">{_html(_display_value(_value_at_path(state.result, field.get("outputPath", ""))))}</td>
-  <td class="ref">{_html(field.get("workbookCell", ""))}</td>
-</tr>"""
-        )
-    return "".join(rows)
-
-
-def _debug_panel(state: UiState) -> str:
-    return f"""
-<details class="debug-panel">
-  <summary>Calculation diagnostics</summary>
-  <div id="linkage-debug" class="linkage-debug">{_linkage_debug_table(state)}</div>
-  <pre id="debug-output">{_html(_debug_json(state))}</pre>
-</details>"""
-
-
-def _linkage_debug_table(state: UiState) -> str:
-    if not state.result:
-        return "No calculation result yet."
-    rows = []
-    for field in state.workbench.get("calculationLinkageFields", []):
-        input_field = field.get("inputField")
-        rows.append(
-            f"""<tr>
-  <td>{_html(field.get("workbookCell", ""))}</td>
-  <td>{_html(field.get("label", ""))}</td>
-  <td>{_html(input_field)}</td>
-  <td>{_html(field.get("normalizedPath", ""))}</td>
-  <td>{_html(field.get("uiElement", ""))}</td>
-  <td>{_html(_display_value(state.inputs.get(input_field)))}</td>
-  <td>{_html(_display_value(state.inputs.get(input_field)))}</td>
-  <td>{_html(_display_value(_value_at_path(state.result, field.get("normalizedPath", ""))))}</td>
-  <td>{_html(_display_value(_value_at_path(state.result, field.get("outputPath", ""))))}</td>
-</tr>"""
-        )
-    return f"""
-<table class="debug-table">
-  <thead>
-    <tr>
-      <th>Workbook cell</th><th>Field</th><th>App input</th><th>Engine path</th><th>UI element</th><th>Raw UI value</th><th>Sent value</th><th>Normalized value</th><th>Output value</th>
-    </tr>
-  </thead>
-  <tbody>{''.join(rows)}</tbody>
-</table>"""
-
-
-def _debug_json(state: UiState) -> str:
-    debug = {
-        "sentInput": state.inputs,
-        "normalizedInput": state.result.get("input") if state.result else None,
-        "dashboard": state.result.get("dashboard") if state.result else None,
-        "audit": state.result.get("audit") if state.result else None,
-    }
-    return json.dumps(debug, indent=2, sort_keys=True)
 
 
 def _sinking_fund_panel(state: UiState) -> str:
@@ -614,21 +507,6 @@ def _trace_formatted_value(
     return _format(_trace_value(source, keys), source.get("kind") or source.get("valueKind") or fallback_kind)
 
 
-def _trace_check_text(check: object) -> str:
-    if not check:
-        return ""
-    if isinstance(check, str):
-        return check
-    if not isinstance(check, Mapping):
-        return str(check)
-    parts = []
-    if check.get("engineValue") is not None:
-        parts.append(f"engine {_format(check.get('engineValue'), check.get('kind'))}")
-    if check.get("delta") is not None:
-        parts.append(f"delta {_format(check.get('delta'), check.get('kind') or 'moneyCents')}")
-    return "; ".join(parts)
-
-
 def _result_trace(state: UiState, name: str) -> Mapping[str, object]:
     if not state.result:
         return {}
@@ -662,15 +540,6 @@ def _repair_driver_age_text(row: Mapping[str, object]) -> str:
     if age_source:
         parts.append(str(age_source))
     return " / ".join(parts)
-
-
-def _value_at_path(source: Mapping[str, object], path: str) -> object:
-    current: object = source
-    for part in path.split("."):
-        if not isinstance(current, Mapping):
-            return None
-        current = current.get(part)
-    return current
 
 
 def _first_present(source: Mapping[str, object], keys: Sequence[str]) -> object:

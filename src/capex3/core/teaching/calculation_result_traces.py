@@ -12,6 +12,7 @@ from capex3.core.solve_rental_capex import (
 from capex3.core.workbook_assumptions import model_spec_record
 
 from .cash_flow_stability_trace import cash_flow_stability_trace
+from .evidence_presentation import presentation_for_layer
 from .solver_question_display import (
     threshold_questions_to_contract,
     threshold_solver_tolerance,
@@ -61,7 +62,7 @@ def build_calculation_result_traces(
     solver_variables: Sequence[Mapping[str, object]],
     model_spec: Mapping[str, object],
 ) -> dict[str, object]:
-    return {
+    traces = {
         "cashFlow": _cash_flow_trace(contract),
         "repairDrivers": _repair_driver_trace(contract),
         "repairFund": _repair_fund_trace(contract),
@@ -73,6 +74,9 @@ def build_calculation_result_traces(
         ),
         "cashFlowStability": cash_flow_stability_trace(contract),
     }
+    for layer_id, trace in traces.items():
+        trace["presentation"] = presentation_for_layer(layer_id)
+    return traces
 
 
 def _cash_flow_trace(result: Mapping[str, object]) -> dict[str, object]:
@@ -418,11 +422,23 @@ def _repair_fund_info_copy(pattern: str) -> str:
     )
 
 
+def _repair_fund_cumulative_interest(
+    rows: Sequence[Mapping[str, object]],
+) -> float:
+    return sum(
+        float(row["interestEarned"])
+        for row in rows
+        if isinstance(row.get("interestEarned"), (int, float))
+    )
+
+
 def _repair_fund_trace(result: Mapping[str, object]) -> dict[str, object]:
     trace = dict(result.get("repairReservePathTrace", {}))
     rows = [dict(row) for row in trace.get("years", [])]
     events = [dict(event) for event in trace.get("eventMarkers", [])]
     pattern = _repair_fund_contribution_pattern(rows, trace.get("monthlyContribution"))
+    cumulative_interest = _repair_fund_cumulative_interest(rows)
+    reserve_apy = trace.get("reserveAccountApy")
     largest = trace.get("largestEvent")
     largest_label = "None in 10 years"
     largest_note = "No modeled component replacement lands inside the 10-year view."
@@ -443,6 +459,18 @@ def _repair_fund_trace(result: Mapping[str, object]) -> dict[str, object]:
                 note=_repair_fund_monthly_card_note(pattern),
             ),
             _card("Target reserve", trace.get("targetReserve"), "money"),
+            _card(
+                "Repair fund APY (B20)",
+                reserve_apy,
+                "percent",
+                note="Interest-bearing reserve account — not checking cash.",
+            ),
+            _card(
+                "Interest earned Yr 0-10",
+                cumulative_interest,
+                "money",
+                note="From repairReservePathTrace balance × APY each year.",
+            ),
             {
                 "label": "Largest single repair",
                 "value": largest_value,
@@ -527,6 +555,8 @@ def _receipt_row(
     engine_field: str,
     value: object,
     receipt_kind: str,
+    *,
+    show_engine_field: bool = False,
 ) -> dict[str, object]:
     return {
         "label": label,
@@ -534,6 +564,7 @@ def _receipt_row(
         "value": value,
         "kind": "moneyCents",
         "receiptKind": receipt_kind,
+        "showEngineField": show_engine_field,
     }
 
 

@@ -4,7 +4,6 @@ from typing import Mapping
 
 from capex3.presentation.htmx_charts import _evidence_graph
 from capex3.presentation.htmx_evidence import (
-    _debug_panel,
     _evidence_sections,
     _evidence_tabs,
     _metric_cards,
@@ -185,7 +184,6 @@ def _output_panel(state: UiState) -> str:
       </aside>
     </div>
   </div>
-  {_debug_panel(state)}
 </section>"""
 
 

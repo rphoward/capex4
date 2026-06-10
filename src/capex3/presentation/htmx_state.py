@@ -27,13 +27,6 @@ SOURCE_METRIC_STRIP_FIELDS = (
 )
 
 
-SOURCE_METRIC_STRIP_COPY = {
-    "trueMonthlyCashFlow": "Tap for full breakdown",
-    "totalMonthlyCapexReserve": "Tap to see drivers",
-    "breakevenGrossRent": "Tap for thresholds",
-}
-
-
 @dataclass(frozen=True)
 class UiState:
     defaults: Mapping[str, object]
@@ -115,9 +108,15 @@ def _build_state(form: Mapping[str, str], action: str) -> UiState:
     if action == "metric":
         active_metric_field = form.get("activeMetricField", "")
         evidence_follows_step = False
-        metric = _metric_by_field(workbench).get(active_metric_field)
-        if metric:
-            active_evidence_layer = str(metric.get("evidenceLayerId") or active_evidence_layer)
+        nav = _metric_strip_navigation_by_field(workbench).get(active_metric_field)
+        if nav:
+            active_evidence_layer = str(nav.get("layer") or active_evidence_layer)
+        else:
+            metric = _metric_by_field(workbench).get(active_metric_field)
+            if metric:
+                active_evidence_layer = str(
+                    metric.get("evidenceLayerId") or active_evidence_layer
+                )
 
     if evidence_follows_step:
         active_evidence_layer = _evidence_layer_for_step(workbench, active_step)
@@ -331,12 +330,6 @@ def _evidence_layers(workbench: Mapping[str, object]) -> list[dict[str, object]]
         for layer in workbench.get("evidenceConcepts", [])
         if layer.get("id")
     ]
-    known_ids = {layer["id"] for layer in layers}
-    from capex3.presentation.htmx_evidence import UTILITY_EVIDENCE_LAYERS
-
-    layers.extend(
-        layer for layer in UTILITY_EVIDENCE_LAYERS if layer["id"] not in known_ids
-    )
     return layers
 
 
@@ -368,11 +361,28 @@ def _metric_fields_for_layer(
 
 def _source_metric_strip_fields(workbench: Mapping[str, object]) -> list[Mapping[str, object]]:
     metrics = _metric_by_field(workbench)
+    navigation = workbench.get("metricStripNavigation", [])
+    if navigation:
+        return [
+            metrics[str(item["field"])]
+            for item in navigation
+            if str(item.get("field")) in metrics
+        ]
     return [
         metrics[field]
         for field in SOURCE_METRIC_STRIP_FIELDS
         if field in metrics
     ]
+
+
+def _metric_strip_navigation_by_field(
+    workbench: Mapping[str, object],
+) -> dict[str, Mapping[str, object]]:
+    return {
+        str(item.get("field")): item
+        for item in workbench.get("metricStripNavigation", [])
+        if item.get("field")
+    }
 
 
 def _evidence_layer_for_step(workbench: Mapping[str, object], step_id: str) -> str:
