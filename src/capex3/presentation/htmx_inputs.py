@@ -2,12 +2,6 @@ from __future__ import annotations
 
 from typing import Mapping
 
-from capex3.presentation.htmx_charts import _evidence_graph
-from capex3.presentation.htmx_evidence import (
-    _evidence_sections,
-    _evidence_tabs,
-    _metric_cards,
-)
 from capex3.presentation.htmx_format import (
     _attr,
     _control_value,
@@ -22,17 +16,22 @@ from capex3.presentation.htmx_offer_ready import (
     _solver_preview_html,
     _solver_workbench_disclaimer_html,
 )
+from capex3.presentation.htmx_shell import (
+    _calculator_card,
+    _ledger_panel,
+    _section_head,
+    _step_rail,
+)
 from capex3.presentation.htmx_state import (
     UiState,
-    _active_evidence_layer,
     _active_step,
-    _hidden_state_fields,
     _input_fields_by_id,
     _journey_steps,
     _next_step_id,
     _solver_metrics,
     _solver_variables,
 )
+
 
 def _input_panel(state: UiState) -> str:
     step = _active_step(state.workbench, state.active_step)
@@ -41,148 +40,104 @@ def _input_panel(state: UiState) -> str:
     journey_controls = _journey_local_controls(state)
     decision_packet = _decision_packet_placeholder() if state.active_step == "decision" else ""
     offer_ready = _offer_ready_panel(state) if state.active_step == "walkthrough" else ""
-    return f"""
-<section class="input-panel left-panel">
-  <div class="section-head">
-    <h2>Deal inputs</h2>
-    <button id="reset-button" type="button" {_hx_post("/ui/reset")}>Reset</button>
-  </div>
-  <div class="input-workbench">
-    <aside class="step-rail" aria-label="Journey steps">
-      <p>Steps</p>
-      <div class="journey-steps" id="journey-steps">{_journey_step_buttons(state)}</div>
-    </aside>
+
+    calc_card_body = f"""
+    {_step_rail("Steps", _journey_step_buttons(state))}
     <div class="input-content">
       <div class="active-step active-step-summary">
-        <p class="step-kicker">Active step</p>
+        <p class="step-kicker">You're on</p>
         <h2 id="active-step-title">{_html(step.get("title", ""))}</h2>
         <p id="active-step-description">{_html(step.get("description", ""))}</p>
       </div>
       <div class="field-grid" id="field-grid">{_input_fields(state, step)}</div>
       {decision_packet}
       {journey_controls}
-      <div class="secondary-controls" id="component-workbench"{component_hidden}>
-        <div class="section-head compact">
-          <h2>Walkthrough checks</h2>
-          <button id="apply-override-button" type="button" {_hx_post("/ui/override")}>Apply</button>
-        </div>
-        <div class="walkthrough-checks" id="walkthrough-checks">
-          <div>
-            <strong>Age Check</strong>
-            <span>How old or worn is it?</span>
-          </div>
-          <div>
-            <strong>Size / Count Check</strong>
-            <span>How much of it is there?</span>
-          </div>
-        </div>
-        <div class="override-grid">
-          <label>
-            Component
-            <select id="component-select" name="overrideComponent">{_component_options(state)}</select>
-          </label>
-          <label>
-            Quantity
-            <input id="override-quantity" name="overrideQuantity" type="number" step="0.01">
-          </label>
-          <label>
-            Age
-            <input id="override-age" name="overrideAge" type="number" step="0.01">
-          </label>
-        </div>
-        <div id="override-list" class="override-list">{_override_list(state)}</div>
+    </div>"""
+
+    walkthrough_body = f"""
+    <div class="secondary-controls" id="component-workbench"{component_hidden}>
+      <div class="section-head compact">
+        <h2>Walkthrough checks</h2>
+        <button id="apply-override-button" type="button" {_hx_post("/ui/override")}>Apply</button>
       </div>
-      {offer_ready}
-      <div class="secondary-controls" id="solver-workbench"{solver_hidden}>
-        <div class="section-head compact">
-          <h2>What would work?</h2>
-          <button id="solve-button" type="button" {_hx_post("/ui/solve")}>Solve</button>
-        </div>
-        {_solver_workbench_disclaimer_html(state.workbench)}
-        <div class="solver-grid">
-          <label>
-            Variable
-            <select id="solver-variable" name="solverVariable">{_solver_variable_options(state)}</select>
-          </label>
-          <label>
-            Metric
-            <select id="solver-metric" name="solverMetric">{_solver_metric_options(state)}</select>
-          </label>
-          <label>
-            Target
-            <input id="solver-target" name="solverTarget" type="number" step="0.000001" value="{_attr(state.solver_target)}">
-          </label>
-          <label>
-            Lower Bound
-            <input id="solver-lower" name="solverLower" type="number" step="0.01" placeholder="auto" value="{_attr(state.solver_lower)}">
-          </label>
-          <label>
-            Upper Bound
-            <input id="solver-upper" name="solverUpper" type="number" step="0.01" placeholder="auto" value="{_attr(state.solver_upper)}">
-          </label>
-        </div>
-        <div id="solver-result" class="solver-result">{_manual_solver_preview(state)}</div>
+      <div class="override-grid">
+        <label>
+          Component
+          <select id="component-select" name="overrideComponent">{_component_options(state)}</select>
+        </label>
+        <label>
+          Quantity
+          <input id="override-quantity" name="overrideQuantity" type="number" step="0.01">
+        </label>
+        <label>
+          Age
+          <input id="override-age" name="overrideAge" type="number" step="0.01">
+        </label>
       </div>
+      <div id="override-list" class="override-list">{_override_list(state)}</div>
+    </div>"""
+
+    solver_body = f"""
+    <div class="secondary-controls" id="solver-workbench"{solver_hidden}>
+      {_solver_workbench_disclaimer_html(state.workbench)}
+      <div class="solver-grid">
+        <label>
+          Variable
+          <select id="solver-variable" name="solverVariable">{_solver_variable_options(state)}</select>
+        </label>
+        <label>
+          Metric
+          <select id="solver-metric" name="solverMetric">{_solver_metric_options(state)}</select>
+        </label>
+        <label>
+          Target
+          <input id="solver-target" name="solverTarget" type="number" step="0.000001" value="{_attr(state.solver_target)}">
+        </label>
+        <label>
+          Lower Bound
+          <input id="solver-lower" name="solverLower" type="number" step="0.01" placeholder="auto" value="{_attr(state.solver_lower)}">
+        </label>
+        <label>
+          Upper Bound
+          <input id="solver-upper" name="solverUpper" type="number" step="0.01" placeholder="auto" value="{_attr(state.solver_upper)}">
+        </label>
+      </div>
+      <div id="solver-result" class="solver-result">{_manual_solver_preview(state)}</div>
+    </div>"""
+
+    walkthrough_ledger_hidden = "" if state.active_step == "walkthrough" else " hidden"
+    solver_ledger_hidden = "" if state.active_step == "decision" else " hidden"
+    ledger_panels = _ledger_panel(
+        "Walkthrough checks",
+        walkthrough_body,
+        panel_id="walkthrough-ledger",
+    ).replace(
+        'id="walkthrough-ledger">',
+        f'id="walkthrough-ledger"{walkthrough_ledger_hidden}>',
+        1,
+    )
+    ledger_panels += _ledger_panel(
+        "What would work?",
+        f"""
+    <div class="section-head compact">
+      <button id="solve-button" type="button" {_hx_post("/ui/solve")}>Solve</button>
     </div>
-  </div>
-</section>"""
+{solver_body}""",
+        panel_id="solver-ledger",
+    ).replace(
+        'id="solver-ledger">',
+        f'id="solver-ledger"{solver_ledger_hidden}>',
+        1,
+    )
+    if state.active_step == "walkthrough":
+        ledger_panels += offer_ready
 
-
-def _output_panel(state: UiState) -> str:
-    error = (
-        f'<div id="calculation-error" class="calculation-error">{_html(state.error_message)}</div>'
-        if state.error_message
-        else '<div id="calculation-error" class="calculation-error" hidden></div>'
-    )
-    layer = _active_evidence_layer(state)
-    mode = (
-        f"Following {_active_step(state.workbench, state.active_step).get('title', '')}"
-        if state.evidence_follows_step
-        else f"Pinned: {layer.get('title', '')}"
-    )
-    checked = " checked" if state.evidence_follows_step else ""
-    overview_button = (
-        f"""<button id="overview-button" class="btn-ghost btn-sm overview-button" type="button" name="activeEvidenceLayer" value="tenYear" {_hx_post("/ui/evidence")}>Overview</button>"""
-        if state.active_evidence_layer != "tenYear"
-        else ""
-    )
-    pin_badge = "" if state.evidence_follows_step else '<span class="pin-badge">Pinned</span>'
     return f"""
-<section class="output-panel right-panel">
-  <div class="section-head">
-    <h2>Evidence layer</h2>
-  </div>
-  {error}
-  <div class="evidence-panel">
-    <div class="evidence-workbench">
-      <div class="evidence-content">
-        <div class="section-head compact evidence-head">
-          <div class="evidence-title-wrap">
-            <p class="step-kicker" id="evidence-mode">{_html(mode)}</p>
-            <div class="evidence-title-row">
-              {overview_button}
-              <h2 id="evidence-title">{_html(layer.get("title", ""))}</h2>
-              {pin_badge}
-            </div>
-            <p id="evidence-description" class="evidence-description">{_html(layer.get("description", ""))}</p>
-          </div>
-          <label class="follow-toggle">
-            <input type="hidden" name="evidenceFollowsStep" value="false">
-            <input id="evidence-follow" name="evidenceFollowsStep" type="checkbox" value="true"{checked} {_hx_post("/ui/calculate")} hx-trigger="change">
-            Follow my step
-          </label>
-        </div>
-        <div class="evidence-hero">
-          {_evidence_graph(state)}
-          <div class="metric-grid metric-strip" id="metric-grid" data-source-role="metric-strip">{_metric_cards(state)}</div>
-        </div>
-        {_evidence_sections(state)}
-      </div>
-      <aside class="layer-rail" aria-label="Evidence layers">
-        <p>Layers</p>
-        <div class="evidence-tabs" id="evidence-tabs">{_evidence_tabs(state)}</div>
-      </aside>
-    </div>
+<section class="input-panel left-panel calc-inputs">
+{_section_head("Deal inputs", f'<button id="reset-button" type="button" {_hx_post("/ui/reset")}>Reset</button>')}
+  <div class="input-workbench">
+{_calculator_card(calc_card_body)}
+{ledger_panels}
   </div>
 </section>"""
 
@@ -239,12 +194,7 @@ def _journey_local_controls(state: UiState) -> str:
 
 
 def _decision_packet_placeholder() -> str:
-    return """
-<div class="coming-soon decision-packet-placeholder" id="decision-packet-placeholder" aria-disabled="true">
-  <h3>Decision Packet</h3>
-  <p>Printable summary of assumptions, repair fund story, solver thresholds, and risks is disabled until a later approved slice.</p>
-  <button id="generate-packet-button" type="button" disabled>Generate packet</button>
-</div>"""
+    return ""
 
 
 def _field_control(
@@ -316,6 +266,6 @@ def _deal_identity_label(state: UiState) -> str:
     profile = str(state.inputs.get("propertyProfile") or "").strip()
     subregion = str(state.inputs.get("subregion") or "").strip()
     if not address or address == "[Type Address Here]":
-        address = "Unlabeled deal"
+        address = "New property"
     deal_type = profile or subregion or "Rental"
     return f"{address} · {deal_type}"

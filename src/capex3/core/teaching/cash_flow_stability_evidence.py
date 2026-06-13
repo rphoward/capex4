@@ -79,7 +79,7 @@ FIELD_ROLE_CATALOG: tuple[FieldRoleCatalogEntry, ...] = (
         role="trueMonthlyCashFlow",
         path="dashboard.trueMonthlyCashFlow",
         path_kind="planned",
-        label="True monthly cash flow (B40)",
+        label="True monthly cash flow",
         resolver="dotPath",
         value_kind="moneyCents",
     ),

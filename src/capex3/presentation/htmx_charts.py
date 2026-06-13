@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Mapping, Sequence
 
 from capex3.presentation.htmx_evidence import _result_trace, _trace_collection
@@ -13,6 +14,53 @@ TEN_YEAR_SERIES_CLASSES = {
     "conservativeIra": "ira",
 }
 
+# Highcharts colors must mirror --chart-series-* in tokens.css.
+CHART_RENTAL = "#1a7a4c"
+CHART_CASHFLOW = "#a43d12"
+CHART_STONE = "#61594a"
+CHART_COPPER = "#b85c28"
+CHART_AREA_OPACITY_TOP = 0.12
+CHART_AREA_OPACITY_BOTTOM = 0.02
+CHART_GRID = "rgba(38, 27, 7, 0.05)"
+CHART_AXIS = "#61594a"
+CHART_LINE = "#dbdad7"
+
+TEN_YEAR_SERIES_STYLES: dict[str, dict[str, object]] = {
+    "rental": {
+        "type": "areaspline",
+        "color": CHART_RENTAL,
+        "lineWidth": 2.5,
+        "fillColor": {
+            "linearGradient": {"x1": 0, "y1": 0, "x2": 0, "y2": 1},
+            "stops": [
+                [0, f"rgba(26, 122, 76, {CHART_AREA_OPACITY_TOP})"],
+                [1, f"rgba(26, 122, 76, {CHART_AREA_OPACITY_BOTTOM})"],
+            ],
+        },
+    },
+    "cash-flow": {
+        "type": "spline",
+        "color": CHART_CASHFLOW,
+        "dashStyle": "ShortDash",
+        "lineWidth": 1.8,
+        "marker": {"enabled": False},
+    },
+    "money-market": {
+        "type": "spline",
+        "color": CHART_STONE,
+        "dashStyle": "ShortDot",
+        "lineWidth": 2,
+        "marker": {"enabled": False},
+    },
+    "ira": {
+        "type": "spline",
+        "color": CHART_COPPER,
+        "dashStyle": "Dot",
+        "lineWidth": 2,
+        "marker": {"enabled": False},
+    },
+}
+
 
 def _evidence_graph(state: UiState) -> str:
     if state.active_evidence_layer == "tenYear":
@@ -20,6 +68,65 @@ def _evidence_graph(state: UiState) -> str:
     if state.active_evidence_layer == "repairFund":
         return _repair_fund_chart(state)
     return ""
+
+
+def _chart_json(config: Mapping[str, object]) -> str:
+    return _attr(json.dumps(config, separators=(",", ":")))
+
+
+def _highcharts_host(
+    host_id: str,
+    config: Mapping[str, object],
+    *,
+    aria_label: str,
+) -> str:
+    return (
+        f'<div class="highcharts-host" id="{_attr(host_id)}" '
+        f'data-highcharts-config="{_chart_json(config)}" role="img" '
+        f'aria-label="{_attr(aria_label)}"></div>'
+    )
+
+
+def _year_categories(count: int) -> list[str]:
+    return ["Now" if year == 0 else f"Yr {year}" for year in range(count)]
+
+
+def _axis_style() -> dict[str, object]:
+    return {
+        "lineColor": CHART_LINE,
+        "tickColor": CHART_LINE,
+        "gridLineColor": CHART_GRID,
+        "labels": {"style": {"color": CHART_AXIS, "fontSize": "10px"}},
+    }
+
+
+def _base_highcharts_config(*, height: int) -> dict[str, object]:
+    return {
+        "chart": {
+            "backgroundColor": "transparent",
+            "height": height,
+            "spacing": [8, 8, 8, 8],
+            "style": {"fontFamily": "Source Sans 3, system-ui, sans-serif"},
+        },
+        "title": {"text": None},
+        "credits": {"enabled": False},
+        "legend": {"enabled": False},
+        "tooltip": {
+            "shared": True,
+            "__format": "money",
+            "borderColor": CHART_LINE,
+            "backgroundColor": "#ffffff",
+        },
+    }
+
+
+def _value_bounds(values: Sequence[float], *, floor_at_zero: bool = False) -> tuple[float, float]:
+    minimum = min(values)
+    maximum = max(values)
+    spread = max(maximum - minimum, 1.0)
+    min_y = min(0.0, minimum - spread * 0.08) if floor_at_zero else minimum - spread * 0.08
+    max_y = maximum + spread * 0.10
+    return min_y, max_y
 
 
 def _ten_year_chart(state: UiState) -> str:
@@ -42,66 +149,58 @@ def _ten_year_chart(state: UiState) -> str:
             )
     if not series:
         return """
-<div class="chart-wrap" id="ten-year-story-chart">
+<div class="chart-wrap chart-stage" id="ten-year-story-chart">
   <div class="error-text">Evidence trace unavailable.</div>
 </div>"""
 
-    width = 500.0
-    height = 270.0
-    plot = {"left": 50.0, "right": 40.0, "top": 16.0, "bottom": 30.0}
+    point_count = max(len(item["values"]) for item in series)
     all_values = [value for item in series for value in item["values"]]
-    minimum = min(all_values)
-    maximum = max(all_values)
-    spread = max(maximum - minimum, 1.0)
-    min_y = minimum - spread * 0.08
-    max_y = maximum + spread * 0.08
-    base_y = _scale_chart_y(min_y, min_y, max_y, height, plot)
-
-    points_by_class: dict[str, list[tuple[float, float]]] = {}
+    min_y, max_y = _value_bounds(all_values)
+    config = _base_highcharts_config(height=280)
+    config["xAxis"] = {
+        **_axis_style(),
+        "categories": _year_categories(point_count),
+        "tickInterval": 2 if point_count > 6 else 1,
+    }
+    config["yAxis"] = {
+        "title": {"text": None},
+        **_axis_style(),
+        "min": min_y,
+        "max": max_y,
+        "labels": {
+            "style": {"color": CHART_AXIS, "fontSize": "10px"},
+            "__format": "moneyK",
+        },
+    }
+    config["series"] = []
     for item in series:
-        points_by_class[item["className"]] = [
-            _scale_chart_point(value, min_y, max_y, index, len(item["values"]), width, height, plot)
-            for index, value in enumerate(item["values"])
-        ]
+        style = dict(TEN_YEAR_SERIES_STYLES.get(item["className"], TEN_YEAR_SERIES_STYLES["rental"]))
+        entry: dict[str, object] = {
+            "name": item["label"],
+            "data": item["values"],
+            **style,
+        }
+        if item["className"] != "rental":
+            entry["dataLabels"] = {
+                "enabled": True,
+                "__format": "moneyK",
+                "__lastPointOnly": True,
+                "style": {"fontWeight": "700", "fontSize": "10px", "textOutline": "2px #ffffff"},
+            }
+        config["series"].append(entry)
 
-    grid_lines = "".join(
-        f"""
-      <line class="chart-grid" x1="{plot['left']:.1f}" y1="{_scale_chart_y(value, min_y, max_y, height, plot):.1f}" x2="{width - plot['right']:.1f}" y2="{_scale_chart_y(value, min_y, max_y, height, plot):.1f}"></line>
-      <text class="chart-y-label" x="{plot['left'] - 6:.1f}" y="{_scale_chart_y(value, min_y, max_y, height, plot):.1f}" text-anchor="end" dy="0.35em">{_html(_format_chart_k(value))}</text>"""
-        for value in _chart_ticks(min_y, max_y, 6)
-    )
-    x_labels = "".join(
-        _chart_x_label(year, width, height, plot)
-        for year in (0, 2, 4, 6, 8, 10)
-    )
-    rental_points = points_by_class.get("rental", [])
-    rental_area = (
-        f'<path class="rental-area" d="{_attr(_area_svg_path(rental_points, base_y))}"></path>'
-        if rental_points
-        else ""
-    )
-    paths = "".join(
-        f"<path class=\"ten-year-series {_attr(item['className'])}\" d=\"{_attr(_smooth_svg_path(points_by_class[item['className']]))}\"></path>"
-        for item in series
-        if points_by_class.get(item["className"])
-    )
-    endpoints = "".join(
-        _ten_year_endpoint(item, points_by_class[item["className"]])
-        for item in series
-        if points_by_class.get(item["className"])
-    )
     legend = "".join(
         f"""
       <span><i class="legend-swatch {_attr(item['className'])}"></i>{_html(item['label'])}</span>"""
         for item in series
     )
     note = trace.get("note") or (
-        "The rental path is compared with calmer alternatives using the latest Python calculator result."
+        "The rental path is compared with calmer alternatives using your current assumptions."
     )
     initial = _format(trace.get("initialInvestment"), "money")
     return f"""
-<div class="chart-wrap" id="ten-year-story-chart">
-  <div class="chart-hed">
+<div class="chart-wrap chart-stage" id="ten-year-story-chart">
+  <div class="chart-hed chart-summary">
     <div>
       <h3>Total wealth position over 10 years</h3>
       <p class="chart-sub">{_html(initial)} invested (down payment + closing costs) - four paths compared</p>
@@ -110,21 +209,8 @@ def _ten_year_chart(state: UiState) -> str:
   <div class="ten-year-chart-frame">
     <div class="chart-side-legend" aria-label="10-year chart series">{legend}
     </div>
-    <div class="svg-wrap">
-      <svg viewBox="0 0 {width:.0f} {height:.0f}" width="100%" height="{height:.0f}" role="img" aria-labelledby="ten-year-chart-title">
-        <title id="ten-year-chart-title">Total wealth position over 10 years</title>
-        <defs>
-          <linearGradient id="rentalGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#1f7a54" stop-opacity="0.15"></stop>
-            <stop offset="100%" stop-color="#1f7a54" stop-opacity="0.02"></stop>
-          </linearGradient>
-        </defs>
-        {grid_lines}
-        {x_labels}
-        {rental_area}
-        {paths}
-        {endpoints}
-      </svg>
+    <div class="svg-wrap chart-canvas">
+      {_highcharts_host("ten-year-story-chart-mount", config, aria_label="Total wealth position over 10 years")}
     </div>
   </div>
   <div class="chart-note">{_html(note)}</div>
@@ -139,13 +225,38 @@ def _repair_fund_chart_subtitle(trace: Mapping[str, object]) -> str:
         return "No monthly repair reserve is modeled for this deal."
     if pattern == "stops_at_cap":
         return (
-            f"Dashboard rate {monthly}/mo (B34) — annual trace contributions stop once "
-            f"the reserve cap ({target}, B21) is full; not every year adds new set-aside"
+            f"Dashboard rate {monthly}/mo — annual trace contributions stop once "
+            f"the reserve cap ({target}) is full; not every year adds new set-aside"
         )
     return (
-        f"Dashboard rate {monthly}/mo (B34) — trace contributions continue until "
-        f"the reserve cap (B21) is reached"
+        f"Dashboard rate {monthly}/mo — trace contributions continue until "
+        f"the reserve cap is reached"
     )
+
+
+def _repair_fund_plot_lines(events: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
+    plot_lines: list[dict[str, object]] = []
+    for event in events:
+        year = event.get("year")
+        amount = event.get("amount")
+        if not isinstance(year, (int, float)) or not isinstance(amount, (int, float)):
+            continue
+        label = event.get("label") or event.get("component") or "Repair"
+        plot_lines.append(
+            {
+                "value": year,
+                "width": 1,
+                "color": "rgba(38, 27, 7, 0.14)",
+                "zIndex": 2,
+                "label": {
+                    "text": f"{_format_chart_k(amount)} · {label}",
+                    "rotation": 0,
+                    "y": 12,
+                    "style": {"color": CHART_AXIS, "fontSize": "10px", "fontWeight": "600"},
+                },
+            }
+        )
+    return plot_lines
 
 
 def _repair_fund_chart(state: UiState) -> str:
@@ -165,89 +276,89 @@ def _repair_fund_chart(state: UiState) -> str:
             )
     if not rows or len(series) < 2:
         return """
-<div class="chart-wrap" id="repair-fund-story-chart">
+<div class="chart-wrap chart-stage" id="repair-fund-story-chart">
   <div class="error-text">Repair reserve path trace unavailable.</div>
 </div>"""
 
-    width = 540.0
-    height = 260.0
-    plot = {"left": 52.0, "right": 18.0, "top": 18.0, "bottom": 30.0}
-    all_values = [0.0] + [value for item in series for value in item["values"]]
+    values_by_id = {item["id"]: item["values"] for item in series}
+    reserve_values = values_by_id.get("reserveBalance", [])
+    no_reserve_values = values_by_id.get("noReserveSurpriseCost", [])
+    point_count = max(len(reserve_values), len(no_reserve_values), 1)
+    all_values = [0.0, *reserve_values, *no_reserve_values]
     events = _repair_fund_chart_events(_trace_collection(graph, ("events", "eventMarkers")))
-    all_values += [
+    all_values.extend(
         event.get("amount")
         for event in events
         if isinstance(event.get("amount"), (int, float))
+    )
+    min_y, max_y = _value_bounds(all_values, floor_at_zero=True)
+    config = _base_highcharts_config(height=260)
+    config["xAxis"] = {
+        **_axis_style(),
+        "categories": _year_categories(point_count),
+        "tickInterval": 2 if point_count > 6 else 1,
+        "plotLines": _repair_fund_plot_lines(events),
+    }
+    config["yAxis"] = {
+        "title": {"text": None},
+        **_axis_style(),
+        "min": min_y,
+        "max": max_y,
+        "labels": {
+            "style": {"color": CHART_AXIS, "fontSize": "10px"},
+            "__format": "moneyK",
+        },
+    }
+    config["series"] = [
+        {
+            "name": "Reserve balance (with monthly fund)",
+            "type": "areaspline",
+            "color": CHART_RENTAL,
+            "lineWidth": 2,
+            "data": reserve_values,
+            "fillColor": {
+                "linearGradient": {"x1": 0, "y1": 0, "x2": 0, "y2": 1},
+                "stops": [
+                    [0, f"rgba(26, 122, 76, {CHART_AREA_OPACITY_TOP})"],
+                    [1, f"rgba(26, 122, 76, {CHART_AREA_OPACITY_BOTTOM})"],
+                ],
+            },
+        },
+        {
+            "name": "Cumulative surprise cost (no reserve)",
+            "type": "area",
+            "step": "left",
+            "color": CHART_CASHFLOW,
+            "lineWidth": 2,
+            "data": no_reserve_values,
+            "fillColor": {
+                "linearGradient": {"x1": 0, "y1": 0, "x2": 0, "y2": 1},
+                "stops": [
+                    [0, f"rgba(164, 61, 18, {CHART_AREA_OPACITY_TOP})"],
+                    [1, f"rgba(164, 61, 18, {CHART_AREA_OPACITY_BOTTOM})"],
+                ],
+            },
+        },
     ]
-    minimum = min(value for value in all_values if isinstance(value, (int, float)))
-    maximum = max(value for value in all_values if isinstance(value, (int, float)))
-    spread = max(maximum - minimum, 1.0)
-    min_y = min(0.0, minimum - spread * 0.08)
-    max_y = maximum + spread * 0.10
-    base_y = _scale_chart_y(0, min_y, max_y, height, plot)
 
-    values_by_id = {item["id"]: item["values"] for item in series}
-    reserve_points = [
-        _scale_chart_point(value, min_y, max_y, index, len(values_by_id["reserveBalance"]), width, height, plot)
-        for index, value in enumerate(values_by_id.get("reserveBalance", []))
-    ]
-    no_reserve_points = [
-        _scale_chart_point(value, min_y, max_y, index, len(values_by_id["noReserveSurpriseCost"]), width, height, plot)
-        for index, value in enumerate(values_by_id.get("noReserveSurpriseCost", []))
-    ]
-
-    grid_lines = "".join(
-        f"""
-      <line class="chart-grid" x1="{plot['left']:.1f}" y1="{_scale_chart_y(value, min_y, max_y, height, plot):.1f}" x2="{width - plot['right']:.1f}" y2="{_scale_chart_y(value, min_y, max_y, height, plot):.1f}"></line>
-      <text class="chart-y-label" x="{plot['left'] - 6:.1f}" y="{_scale_chart_y(value, min_y, max_y, height, plot):.1f}" text-anchor="end" dy="0.35em">{_html(_format_chart_k(value))}</text>"""
-        for value in _chart_ticks(min_y, max_y, 5)
-    )
-    x_labels = "".join(
-        _chart_x_label(year, width, height, plot)
-        for year in (0, 2, 4, 6, 8, 10)
-    )
-    markers = "".join(
-        _repair_fund_event_marker(event, min_y, max_y, width, height, plot, base_y)
-        for event in events
-    )
     chart_sub = _repair_fund_chart_subtitle(trace)
     info_copy = trace.get("infoCopy") or (
-        "Teaching-only trace comparing reserve balance vs. no-reserve surprise cost."
+        "Compare reserve balance vs. no-reserve surprise cost when repairs land."
     )
-    note = trace.get("note") or "Repair reserve trace comes from the Python calculator."
+    note = trace.get("note") or "Reserve timeline based on your monthly contribution and repair schedule."
     return f"""
 <div class="info-box repair-fund-info" id="repair-fund-info">
   {_html(info_copy)}
 </div>
-<div class="chart-wrap repair-fund-chart" id="repair-fund-story-chart">
-  <p class="teaching-only-cue"><small>Teaching-only trace — not workbook parity.</small></p>
-  <div class="chart-hed">
+<div class="chart-wrap chart-stage repair-fund-chart" id="repair-fund-story-chart">
+  <div class="chart-hed chart-summary">
     <div>
       <h3>Reserve balance vs. no-reserve surprise cost</h3>
       <p class="chart-sub">{_html(chart_sub)}</p>
     </div>
   </div>
-  <div class="svg-wrap">
-    <svg viewBox="0 0 {width:.0f} {height:.0f}" width="100%" height="{height:.0f}" role="img" aria-labelledby="repair-fund-chart-title">
-      <title id="repair-fund-chart-title">Reserve balance vs no-reserve surprise cost</title>
-      <defs>
-        <linearGradient id="repairBalanceGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#1f7a54" stop-opacity="0.22"></stop>
-          <stop offset="100%" stop-color="#1f7a54" stop-opacity="0.03"></stop>
-        </linearGradient>
-        <linearGradient id="surpriseCostGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#a43d35" stop-opacity="0.15"></stop>
-          <stop offset="100%" stop-color="#a43d35" stop-opacity="0.02"></stop>
-        </linearGradient>
-      </defs>
-      {grid_lines}
-      {x_labels}
-      <path class="surprise-cost-area" d="{_attr(_step_area_svg_path(no_reserve_points, base_y))}"></path>
-      <path class="repair-surprise-series" d="{_attr(_step_svg_path(no_reserve_points))}"></path>
-      <path class="repair-balance-area" d="{_attr(_area_svg_path(reserve_points, base_y))}"></path>
-      <path class="repair-balance-series" d="{_attr(_linear_svg_path(reserve_points))}"></path>
-      {markers}
-    </svg>
+  <div class="svg-wrap chart-canvas">
+    {_highcharts_host("repair-fund-story-chart-mount", config, aria_label="Reserve balance vs no-reserve surprise cost")}
   </div>
   <div class="chart-legend repair-fund-legend">
     <span><i class="legend-swatch reserve-balance"></i>Reserve balance (with monthly fund)</span>
@@ -255,38 +366,6 @@ def _repair_fund_chart(state: UiState) -> str:
   </div>
   <div class="chart-note">{_html(note)}</div>
 </div>"""
-
-
-def _repair_fund_event_marker(
-    event: Mapping[str, object],
-    minimum: float,
-    maximum: float,
-    width: float,
-    height: float,
-    plot: Mapping[str, float],
-    base_y: float,
-) -> str:
-    year = event.get("year")
-    amount = event.get("amount")
-    ending_balance = event.get("endingBalance")
-    if not isinstance(year, (int, float)) or not isinstance(amount, (int, float)):
-        return ""
-    x = _scale_chart_x(year, 10, width, plot)
-    label_y = _scale_chart_y(amount, minimum, maximum, height, plot) - 9
-    balance_y = (
-        _scale_chart_y(ending_balance, minimum, maximum, height, plot)
-        if isinstance(ending_balance, (int, float))
-        else base_y
-    )
-    label = event.get("label") or event.get("component") or "Repair"
-    anchor = "end" if x > width - 80 else "start" if x < plot["left"] + 42 else "middle"
-    return f"""
-      <g class="repair-event-marker">
-        <line x1="{x:.1f}" y1="{plot['top']:.1f}" x2="{x:.1f}" y2="{base_y:.1f}"></line>
-        <circle cx="{x:.1f}" cy="{balance_y:.1f}" r="5"></circle>
-        <text class="event-amount" x="{x:.1f}" y="{label_y - 10:.1f}" text-anchor="{anchor}">{_html(_format_chart_k(amount))}</text>
-        <text class="event-label" x="{x:.1f}" y="{label_y:.1f}" text-anchor="{anchor}">{_html(label)}</text>
-      </g>"""
 
 
 def _repair_fund_chart_events(
@@ -319,248 +398,13 @@ def _repair_fund_chart_events(
     return markers
 
 
-def _ten_year_endpoint(
-    series: Mapping[str, object],
-    points: Sequence[tuple[float, float]],
-) -> str:
-    if not points:
-        return ""
-    x, y = points[-1]
-    values = series.get("values", [])
-    last_value = values[-1] if isinstance(values, list) and values else None
-    class_name = str(series.get("className") or "")
-    return f"""
-        <g class="endpoint {_attr(class_name)}">
-          <circle cx="{x:.1f}" cy="{y:.1f}" r="3.5"></circle>
-          <text class="endpoint-label {_attr(class_name)}" x="{x + 6:.1f}" y="{y:.1f}" dy="0.35em">{_html(_format_chart_k(last_value))}</text>
-        </g>"""
-
-
-def _chart_x_label(
-    year: int,
-    width: float,
-    height: float,
-    plot: Mapping[str, float],
-) -> str:
-    label = "Now" if year == 0 else f"Yr {year}"
-    return (
-        f'<text class="chart-x-label" x="{_scale_chart_x(year, 10, width, plot):.1f}" '
-        f'y="{height - 7:.1f}" text-anchor="middle">{_html(label)}</text>'
-    )
-
-
-def _scale_chart_point(
-    value: float,
-    minimum: float,
-    maximum: float,
-    index: int,
-    total: int,
-    width: float,
-    height: float,
-    plot: Mapping[str, float],
-) -> tuple[float, float]:
-    return (
-        _scale_chart_x(index, max(total - 1, 1), width, plot),
-        _scale_chart_y(value, minimum, maximum, height, plot),
-    )
-
-
-def _scale_chart_x(
-    value: float,
-    maximum: float,
-    width: float,
-    plot: Mapping[str, float],
-) -> float:
-    plot_width = width - plot["left"] - plot["right"]
-    return plot["left"] + (value / maximum) * plot_width if maximum else plot["left"]
-
-
-def _scale_chart_y(
-    value: float,
-    minimum: float,
-    maximum: float,
-    height: float,
-    plot: Mapping[str, float],
-) -> float:
-    plot_height = height - plot["top"] - plot["bottom"]
-    ratio = 0.5 if maximum == minimum else (value - minimum) / (maximum - minimum)
-    return plot["top"] + (1 - max(0, min(1, ratio))) * plot_height
-
-
-def _smooth_svg_path(points: Sequence[tuple[float, float]]) -> str:
-    if not points:
-        return ""
-    path = f"M{points[0][0]:.1f},{points[0][1]:.1f}"
-    for previous, current in zip(points, points[1:]):
-        mid_x = (previous[0] + current[0]) / 2
-        path += (
-            f" C{mid_x:.1f},{previous[1]:.1f} "
-            f"{mid_x:.1f},{current[1]:.1f} "
-            f"{current[0]:.1f},{current[1]:.1f}"
-        )
-    return path
-
-
-def _area_svg_path(points: Sequence[tuple[float, float]], base_y: float) -> str:
-    if not points:
-        return ""
-    last_x = points[-1][0]
-    first_x = points[0][0]
-    return f"{_smooth_svg_path(points)} L{last_x:.1f},{base_y:.1f} L{first_x:.1f},{base_y:.1f} Z"
-
-
-def _linear_svg_path(points: Sequence[tuple[float, float]]) -> str:
-    if not points:
-        return ""
-    return " ".join(
-        [f"M{points[0][0]:.1f},{points[0][1]:.1f}"]
-        + [f"L{x:.1f},{y:.1f}" for x, y in points[1:]]
-    )
-
-
-def _step_svg_path(points: Sequence[tuple[float, float]]) -> str:
-    if not points:
-        return ""
-    path = f"M{points[0][0]:.1f},{points[0][1]:.1f}"
-    for x, y in points[1:]:
-        path += f" H{x:.1f} V{y:.1f}"
-    return path
-
-
-def _step_area_svg_path(points: Sequence[tuple[float, float]], base_y: float) -> str:
-    if not points:
-        return ""
-    return (
-        f"{_step_svg_path(points)} V{base_y:.1f} "
-        f"H{points[0][0]:.1f} Z"
-    )
-
-
-def _chart_ticks(minimum: float, maximum: float, count: int) -> list[float]:
-    if count <= 1:
-        return [minimum]
-    step = (maximum - minimum) / (count - 1)
-    return [minimum + step * index for index in range(count)]
-
-
 def _format_chart_k(value: object) -> str:
     if not isinstance(value, (int, float)):
         return "-"
     prefix = "-$" if value < 0 else "$"
-    return f"{prefix}{abs(value) / 1000:.0f}k"
-
-
-def _graph_content(state: UiState) -> tuple[str, str, str]:
-    if not state.result:
-        return ("Evidence trace unavailable", '<div class="error-text">Evidence trace unavailable.</div>', "")
-    layer_id = state.active_evidence_layer
-    traces = state.result.get("traces", {})
-    if layer_id == "tenYear":
-        return _line_graph("Rental vs calmer alternatives", traces.get("tenYear", {}))
-    if layer_id == "repairDrivers":
-        return _bar_graph(
-            "Largest monthly repair fund drivers",
-            _trace_collection(traces.get("repairDrivers", {}).get("graph", {}), ("bars", "drivers", "rows", "topDrivers")),
-        )
-    if layer_id == "cashFlow":
-        return _bar_graph(
-            "Rent to true monthly cash flow",
-            _trace_collection(traces.get("cashFlow", {}).get("graph", {}), ("bars", "graphBars")),
-        )
-    if layer_id == "whatWorks":
-        return _bar_graph(
-            "Current threshold pressure",
-            _trace_collection(traces.get("whatWorks", {}).get("graph", {}), ("bars", "graphBars")),
-        )
-    dashboard = state.result.get("dashboard", {})
-    return _bar_graph(
-        "Diagnostic values in play",
-        [
-            {"label": "Market rent", "value": dashboard.get("marketRent"), "kind": "moneyCents"},
-            {"label": "Repair fund", "value": dashboard.get("totalMonthlyCapexReserve"), "kind": "moneyCents"},
-            {"label": "Loan payment", "value": dashboard.get("monthlyMortgagePI"), "kind": "moneyCents"},
-        ],
-    )
-
-
-def _line_graph(title: str, trace: Mapping[str, object]) -> tuple[str, str, str]:
-    class_by_id = {
-        "rental": "rental",
-        "moneyMarket": "money-market",
-        "conservativeIra": "ira",
-    }
-    series = []
-    for item in _trace_collection(trace.get("graph", {}), ("series", "lineSeries", "lines")):
-        values = [value for value in item.get("values", []) if isinstance(value, (int, float))]
-        if item.get("label") and values:
-            series.append(
-                {
-                    "label": item["label"],
-                    "className": class_by_id.get(item.get("id"), item.get("id", "rental")),
-                    "values": values,
-                }
-            )
-    if not series:
-        return (title, '<div class="error-text">Evidence trace unavailable.</div>', "")
-
-    values = [value for item in series for value in item["values"]]
-    minimum = min(values)
-    maximum = max(values)
-    lines = []
-    for item in series:
-        points = " ".join(
-            _graph_point(value, minimum, maximum, index, len(item["values"]))
-            for index, value in enumerate(item["values"])
-        )
-        lines.append(
-            f'<polyline class="graph-series {_attr(item["className"])}" points="{_attr(points)}"></polyline>'
-        )
-    body = f"""
-<svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img">
-  <line class="graph-axis" x1="6" y1="88" x2="96" y2="88"></line>
-  <line class="graph-axis" x1="6" y1="8" x2="6" y2="88"></line>
-  {''.join(lines)}
-</svg>"""
-    legend = "".join(
-        f'<span><i class="{_attr(item["className"])}"></i>{_html(item["label"])}</span>'
-        for item in series
-    )
-    return (title, body, legend)
-
-
-def _bar_graph(title: str, rows: Sequence[Mapping[str, object]]) -> tuple[str, str, str]:
-    bars = [
-        {
-            "label": row.get("label") or row.get("title") or row.get("name"),
-            "value": _first_present(row, ("value", "amount", "metricValue", "monthlyReserve")),
-            "kind": row.get("kind") or row.get("valueKind") or "moneyCents",
-        }
-        for row in rows
-    ]
-    bars = [
-        bar
-        for bar in bars
-        if bar["label"] and isinstance(bar["value"], (int, float))
-    ]
-    if not bars:
-        return (title, '<div class="error-text">Evidence trace unavailable.</div>', "")
-    maximum = max([abs(bar["value"]) for bar in bars] + [1])
-    body = "".join(
-        f"""
-<div class="graph-bar-row">
-  <span>{_html(bar["label"])}</span>
-  <div class="graph-bar-track">
-    <div class="graph-bar {'negative' if bar["value"] < 0 else ''}" style="width: {max(4, abs(bar["value"]) / maximum * 100):.1f}%"></div>
-  </div>
-  <strong>{_html(_format(bar["value"], bar["kind"]))}</strong>
-</div>"""
-        for bar in bars
-    )
-    return (title, body, "")
-
-
-def _graph_point(value: float, minimum: float, maximum: float, index: int, total: int) -> str:
-    x = 50 if total <= 1 else 6 + (index / (total - 1)) * 88
-    ratio = 0.5 if maximum == minimum else (value - minimum) / (maximum - minimum)
-    y = 88 - max(0, min(1, ratio)) * 76
-    return f"{x:.2f},{y:.2f}"
+    magnitude = abs(value)
+    if magnitude >= 1_000_000:
+        return f"{prefix}{magnitude / 1_000_000:.1f}M"
+    if magnitude >= 1_000:
+        return f"{prefix}{magnitude / 1000:.0f}k"
+    return f"{prefix}{magnitude:.0f}"

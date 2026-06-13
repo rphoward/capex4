@@ -47,6 +47,8 @@ FORBIDDEN_PRESENTATION_IMPORT_PREFIXES = (
     "capex3.workbook_assumptions",
 )
 APPROVED_PRESENTATION_JAVASCRIPT = {
+    Path("browser_assets/charts.js"),
+    Path("browser_assets/vendor/highcharts.js"),
     Path("browser_assets/vendor/htmx.min.js"),
 }
 
@@ -182,7 +184,7 @@ class ArchitectureDependencyGatesTest(unittest.TestCase):
 
         self.assertEqual([], missing_symbols)
 
-    def test_presentation_allows_only_vendored_htmx_javascript(self) -> None:
+    def test_presentation_allows_only_vendored_presentation_javascript(self) -> None:
         javascript_files = {
             path.relative_to(PRESENTATION_ROOT)
             for path in PRESENTATION_ROOT.rglob("*.js")
@@ -209,7 +211,11 @@ class ArchitectureDependencyGatesTest(unittest.TestCase):
             for path in sorted(browser_assets_root.rglob("*"))
             if path.is_file()
             and path.suffix in {".html", ".css", ".js"}
-            and path.relative_to(browser_assets_root) != Path("vendor/htmx.min.js")
+            and path.relative_to(browser_assets_root)
+            not in {
+                Path("vendor/htmx.min.js"),
+                Path("vendor/highcharts.js"),
+            }
         )
         forbidden_fragments = [
             'type="' + 'module"',
@@ -226,18 +232,25 @@ class ArchitectureDependencyGatesTest(unittest.TestCase):
         self.assertEqual([], violations)
 
     def test_handoff_visual_translation_stays_in_css_not_javascript(self) -> None:
+        tokens = (PRESENTATION_ROOT / "browser_assets" / "tokens.css").read_text(
+            encoding="utf-8"
+        )
         stylesheet = (PRESENTATION_ROOT / "browser_assets" / "styles.css").read_text(
             encoding="utf-8"
         )
+        combined_css = tokens + stylesheet
         required_css_markers = [
-            "--banana",
-            "--depth-shadow",
-            "border-radius: var(--radius);",
-            "border-bottom: 1px solid var(--banana-dim);",
-            "border-right: 1px solid var(--banana-dim);",
+            "--canvas",
+            "--amber",
+            "--hairline",
+            "--font-ui",
+            "--font-display",
+            "--chart-grid",
+            "border-radius: var(--radius-shell);",
+            "border: 1px solid var(--hairline)",
         ]
         missing_markers = [
-            marker for marker in required_css_markers if marker not in stylesheet
+            marker for marker in required_css_markers if marker not in combined_css
         ]
 
         self.assertEqual([], missing_markers)

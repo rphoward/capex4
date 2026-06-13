@@ -19,7 +19,7 @@ from .solver_question_display import (
 )
 
 SOLVER_CASE_POLICY = (
-    "solver.* cases are app-side regression cases, not workbook-canonical solver behavior."
+    "Threshold previews explore one input at a time under current assumptions."
 )
 
 SOLVER_DISCLAIMER: dict[str, object] = {
@@ -27,20 +27,18 @@ SOLVER_DISCLAIMER: dict[str, object] = {
     "appRegressionOnly": True,
     "solverCasePolicy": SOLVER_CASE_POLICY,
     "sourceNote": (
-        "Manual solver and threshold questions call solve_rental_capex bisection under "
-        "fixtureContract.solverCasePolicy — app-side regression only, not spreadsheet "
-        "Goal Seek or workbook-canonical solver truth."
+        "Each preview solves for one input while holding everything else constant."
     ),
     "layerCopy": (
-        "Thresholds under current assumptions — not recommendations. Each question uses "
-        "the Python app regression solver with all other inputs held constant."
+        "Thresholds under current assumptions — not recommendations. Each question "
+        "explores one change while other inputs stay the same."
     ),
     "solverNote": (
-        "App-side regression only (fixtureContract.solverCasePolicy). Previews are "
-        "exploratory under current inputs — not workbook-canonical solver output."
+        "Previews are exploratory under current inputs — apply only when the result "
+        "fits your plan."
     ),
     "previewFootnote": (
-        "App-side regression preview — not workbook-canonical solver output."
+        "Preview only — other assumptions stay the same."
     ),
 }
 
@@ -98,7 +96,7 @@ def _cash_flow_trace(result: Mapping[str, object]) -> dict[str, object]:
                 note="Snapshot monthly rate from sinking fund.",
             ),
             _card(
-                "True monthly cash flow (B40)",
+                "True monthly cash flow",
                 dashboard["trueMonthlyCashFlow"],
                 "moneyCents",
                 note=(
@@ -151,7 +149,7 @@ def _cash_flow_trace(result: Mapping[str, object]) -> dict[str, object]:
                 "deduction",
             ),
             _receipt_row(
-                "True monthly cash flow (B40)",
+                "True monthly cash flow",
                 "trueMonthlyCashFlow",
                 dashboard["trueMonthlyCashFlow"],
                 "total",
@@ -163,7 +161,7 @@ def _cash_flow_trace(result: Mapping[str, object]) -> dict[str, object]:
                 _bar("Operating costs", dashboard["totalMonthlyFixedExpenses"], "moneyCents"),
                 _bar("Repair fund (snapshot)", dashboard["totalMonthlyCapexReserve"], "moneyCents"),
                 _bar("Loan payment", dashboard["monthlyMortgagePI"], "moneyCents"),
-                _bar("True monthly cash flow (B40)", dashboard["trueMonthlyCashFlow"], "moneyCents"),
+                _bar("True monthly cash flow", dashboard["trueMonthlyCashFlow"], "moneyCents"),
             ]
         },
     }
@@ -212,16 +210,16 @@ def _ten_year_trace(result: Mapping[str, object]) -> dict[str, object]:
         "title": "10-Year Story",
         "summary": [
             _card(
-                "Year-10 ROI (B28)",
+                "Year-10 ROI",
                 dashboard["year10Roi"],
                 "percent",
-                note="Excludes reserve returned at sale (L15).",
+                note="Excludes reserve returned at sale.",
             ),
             _card(
-                "Liquidation wealth (L17)",
+                "Liquidation wealth",
                 year10["realEstateLiquidationWealth"],
                 "money",
-                note="Includes accumulated reserve (L15) returned at sale.",
+                note="Includes accumulated reserve returned at sale.",
             ),
             _card("Annualized ROI", dashboard["year10AnnualizedRoi"], "percent"),
             _card("Cash needed up front", dashboard["totalInitialInvestment"], "money"),
@@ -232,15 +230,15 @@ def _ten_year_trace(result: Mapping[str, object]) -> dict[str, object]:
             "series": [
                 {
                     "id": "rental",
-                    "label": "Liquidation wealth (L17)",
+                    "label": "Liquidation wealth",
                     "values": [row["realEstateLiquidationWealth"] for row in rows],
                 },
                 {
                     "id": "cashFlow",
-                    "label": "Cash position (L16 + initial)",
+                    "label": "Cash position (operating + initial)",
                     "sourceNote": (
                         "Running cash after expenses and reserves; year 10 excludes "
-                        "sale proceeds and reserve addback (those are in L17)."
+                        "sale proceeds and reserve addback."
                     ),
                     "values": [
                         initial_investment + row["accumulatedTrueCashFlow"]
@@ -260,10 +258,10 @@ def _ten_year_trace(result: Mapping[str, object]) -> dict[str, object]:
             ]
         },
         "note": (
-            "Liquidation wealth (L17) grows through leverage, appreciation, and sale; "
-            "cash position (L16 + initial) is operating cash only—year 10 does not include "
-            "sale proceeds or reserve addback. Alternative paths use the workbook's money "
-            "market and IRA assumptions."
+            "Liquidation wealth grows through leverage, appreciation, and sale; "
+            "cash position (operating + initial) is operating cash only—year 10 does not include "
+            "sale proceeds or reserve addback. Alternative paths use the money "
+            "market and IRA assumptions you entered."
         ),
         "initialInvestment": initial_investment,
     }
@@ -275,48 +273,48 @@ def _ten_year_sale_bridge_receipts(
 ) -> list[dict[str, object]]:
     return [
         _workbook_receipt(
-            "Future property value (B23)",
+            "Future property value",
             "dashboard.futurePropertyValueYear10",
             dashboard["futurePropertyValueYear10"],
-            "10-Year Pro Forma B23",
+            "10-year forecast",
             formula="purchase price × (1 + appreciation)^10",
         ),
         _workbook_receipt(
-            "Remaining loan balance (B24)",
+            "Remaining loan balance",
             "dashboard.remainingLoanBalanceYear10",
             dashboard["remainingLoanBalanceYear10"],
-            "10-Year Pro Forma B24",
-            formula="CUMPRINC through year 10",
+            "10-year forecast",
+            formula="amortization through year 10",
             source_note="Subtracted from future value at sale.",
         ),
         _workbook_receipt(
-            "Cost of sale (B25)",
+            "Cost of sale",
             "dashboard.costOfSaleYear10",
             dashboard["costOfSaleYear10"],
-            "10-Year Pro Forma B25",
-            formula="B23 × cost-of-sale rate",
+            "10-year forecast",
+            formula="future value × cost-of-sale rate",
             source_note="Subtracted from future value at sale.",
         ),
         _workbook_receipt(
-            "Net proceeds (B26)",
+            "Net proceeds",
             "dashboard.netProceedsYear10",
             dashboard["netProceedsYear10"],
-            "10-Year Pro Forma B26",
-            formula="B23 − B24 − B25",
+            "10-year forecast",
+            formula="future value − loan balance − sale costs",
         ),
         _workbook_receipt(
-            "Accumulated operating cash (L16)",
+            "Accumulated operating cash",
             "proForma[10].accumulatedTrueCashFlow",
             year10["accumulatedTrueCashFlow"],
-            "10-Year Pro Forma L16",
-            source_note="Running true cash flow through year 10; feeds B28 ROI numerator.",
+            "10-year forecast",
+            source_note="Running true cash flow through year 10.",
         ),
         _workbook_receipt(
-            "Reserve returned at sale (L15)",
+            "Reserve returned at sale",
             "proForma[10].accumulatedCapexReserve",
             year10["accumulatedCapexReserve"],
-            "10-Year Pro Forma L15",
-            source_note="Capped reserve balance addback at sale; included in L17, excluded from B28.",
+            "10-year forecast",
+            source_note="Capped reserve balance returned at sale; included in liquidation wealth, excluded from year-10 ROI.",
         ),
     ]
 
@@ -373,11 +371,11 @@ def _repair_fund_monthly_card_note(pattern: str) -> str:
         return "No monthly reserve is modeled for this deal."
     if pattern == "stops_at_cap":
         return (
-            "Annual contributions in the trace table stop once the reserve cap (B21) "
+            "Annual contributions in the trace table stop once the reserve cap "
             "is reached; repairs can restart contributions in later years."
         )
     return (
-        "Trace contributions continue until the reserve cap (B21) is reached "
+        "Trace contributions continue until the reserve cap is reached "
         "within this 10-year view."
     )
 
@@ -385,40 +383,34 @@ def _repair_fund_monthly_card_note(pattern: str) -> str:
 def _repair_fund_trace_note(pattern: str) -> str:
     if pattern == "none":
         return (
-            "Teaching-only timeline: no monthly reserve is modeled. Compare reserve "
+            "No monthly reserve is modeled for this deal. Compare reserve "
             "balance vs. cumulative surprise cost when repairs land."
         )
     if pattern == "stops_at_cap":
         return (
-            "Teaching-only timeline: the dashboard monthly rate (B34) funds "
-            "contributions until the cap (B21) stops new annual set-aside in the "
-            "trace—see the Contribution column. Reserve dips when repairs land, then "
-            "can rebuild when balance falls below the cap."
+            "Monthly contributions fund the reserve until the cap is reached. "
+            "Reserve dips when repairs land, then can rebuild when balance falls below the cap."
         )
     return (
-        "Teaching-only timeline: contributions follow the dashboard monthly rate "
-        "(B34) until the reserve cap (B21) is reached. Compare reserve balance vs. "
-        "cumulative surprise cost when repairs land."
+        "Contributions follow the monthly reserve rate until the cap is reached. "
+        "Compare reserve balance vs. cumulative surprise cost when repairs land."
     )
 
 
 def _repair_fund_info_copy(pattern: str) -> str:
     if pattern == "none":
         return (
-            "This teaching trace compares reserve balance vs. no-reserve surprise "
-            "cost when repairs land. No monthly repair reserve is modeled for this deal."
+            "Compare reserve balance vs. no-reserve surprise cost when repairs land. "
+            "No monthly repair reserve is modeled for this deal."
         )
     if pattern == "stops_at_cap":
         return (
-            "This teaching trace compares reserve balance vs. no-reserve surprise "
-            "cost. The dashboard monthly rate (B34) drives contributions until the "
-            "reserve cap (B21) stops new annual set-aside—use the Contribution column, "
-            "not a flat “every year” monthly deposit story."
+            "Compare reserve balance vs. no-reserve surprise cost. Monthly contributions "
+            "continue until the reserve cap is reached — see the Contribution column."
         )
     return (
-        "This teaching trace compares reserve balance vs. no-reserve surprise cost. "
-        "Contributions follow the dashboard monthly rate (B34) until the reserve cap "
-        "(B21) is reached in the trace table."
+        "Compare reserve balance vs. no-reserve surprise cost. Contributions follow "
+        "the monthly reserve rate until the cap is reached."
     )
 
 
@@ -453,14 +445,14 @@ def _repair_fund_trace(result: Mapping[str, object]) -> dict[str, object]:
         "title": "Repair Fund",
         "summary": [
             _card(
-                "Dashboard monthly rate (B34)",
+                "Dashboard monthly rate",
                 trace.get("monthlyContribution"),
                 "moneyCents",
                 note=_repair_fund_monthly_card_note(pattern),
             ),
             _card("Target reserve", trace.get("targetReserve"), "money"),
             _card(
-                "Repair fund APY (B20)",
+                "Repair fund APY",
                 reserve_apy,
                 "percent",
                 note="Interest-bearing reserve account — not checking cash.",
@@ -510,10 +502,8 @@ def _repair_fund_trace(result: Mapping[str, object]) -> dict[str, object]:
         "canonicalReserveSource": "proForma_and_dashboard",
         "canonicalReserveFields": list(CANONICAL_RESERVE_FIELD_PATHS),
         "sourceNote": (
-            "Teaching-only timeline from repairReservePathTrace — not workbook-contract "
-            "and not in the 17-case parity gate. Monthly cap, contribution diversion, and "
-            "year-10 reserve story use workbook-canonical pro forma and dashboard fields "
-            "(see canonicalReserveFields). Do not describe this layer as spreadsheet parity."
+            "Reserve timeline for teaching — cap, contributions, and year-10 balance "
+            "also appear in the 10-year forecast and dashboard summary."
         ),
         "monthlyContribution": trace.get("monthlyContribution"),
         "targetReserve": trace.get("targetReserve"),

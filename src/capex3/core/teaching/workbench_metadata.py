@@ -188,8 +188,7 @@ INPUT_FIELD_CONTROLS = {
         "kind": "rate",
         "hint": (
             "Annual rate for post-close emergency borrowing when the repair fund "
-            "cannot cover a gap — used by the Phase 5 debt-shock evaluator, not "
-            "mortgage pricing."
+            "cannot cover a gap — not your mortgage rate."
         ),
     },
     "emergencyLoanTermYears": {
@@ -197,7 +196,7 @@ INPUT_FIELD_CONTROLS = {
         "kind": "number",
         "hint": (
             "Payment horizon in years when emergency debt is refinanced into one "
-            "monthly payment — Phase 5 debt-shock evaluator only."
+            "monthly payment."
         ),
     },
     "estimatedClosingCostsPercent": {
@@ -288,8 +287,7 @@ EVIDENCE_CONCEPTS = [
         "title": "10-Year Story",
         "concept": "ten-year story",
         "description": (
-            "Compare the rental path against calmer alternatives over the workbook's "
-            "10-year view."
+            "Compare the rental path against calmer alternatives over 10 years."
         ),
         "shortLabel": "10",
     },
@@ -309,8 +307,7 @@ EVIDENCE_CONCEPTS = [
         "concept": "repair drivers",
         "description": (
             "See which property items create the monthly repair fund, why they "
-            "matter, and whether they came from workbook defaults or walkthrough "
-            "overrides."
+            "matter, and whether they came from defaults or walkthrough overrides."
         ),
         "shortLabel": "R",
     },
@@ -330,7 +327,7 @@ EVIDENCE_CONCEPTS = [
         "title": "What Would Work?",
         "concept": "what-would-work threshold questions",
         "description": (
-            "Use solver questions as thresholds under the current assumptions, not "
+            "Explore threshold questions under current assumptions — not "
             "recommendations."
         ),
         "shortLabel": "?",
@@ -362,7 +359,7 @@ SOLVER_VARIABLES = [
         "valueKind": "moneyCents",
         "showInManualControls": True,
         "assumptionText": (
-            "Solved with the workbook's default down-payment percent. "
+            "Solved with your default down-payment percent. "
             "Apply updates purchase price only."
         ),
     },
@@ -413,7 +410,7 @@ SOLVER_VARIABLES = [
 SOLVER_METRICS = [
     {"id": "monthlyCashFlow", "label": "Monthly Cash Flow", "valueKind": "moneyCents"},
     {"id": "cashOnCashReturn", "label": "Cash-on-Cash Return", "valueKind": "percent"},
-    {"id": "year10Roi", "label": "Year-10 ROI (B28)", "valueKind": "percent"},
+    {"id": "year10Roi", "label": "Year-10 ROI", "valueKind": "percent"},
     {"id": "year10AnnualizedRoi", "label": "Annualized ROI", "valueKind": "percent"},
     {
         "id": "firstEmergencyGap",
@@ -426,7 +423,7 @@ SOLVER_METRICS = [
 METRIC_GUIDANCE = [
     (
         "trueMonthlyCashFlow",
-        "True monthly cash flow (B40)",
+        "True monthly cash flow",
         "moneyCents",
         _metric_evidence_layer("trueMonthlyCashFlow", "cashFlow"),
     ),
@@ -444,7 +441,7 @@ METRIC_GUIDANCE = [
     ),
     ("targetCapExReserve", "Target CapEx Reserve", "money", "cashFlow"),
     ("cashOnCashReturn", "Cash-on-Cash Return", "percent", "whatWorks"),
-    ("year10Roi", "Year-10 ROI (B28)", "percent", "tenYear"),
+    ("year10Roi", "Year-10 ROI", "percent", "tenYear"),
     ("capRate", "Cap Rate", "percent", "cashFlow"),
     ("debtServiceCoverageRatio", "DSCR", "number", "cashFlow"),
     ("yearOneTotalReturnOnEquity", "Year 1 Total Return on Equity", "percent", "tenYear"),
@@ -459,12 +456,12 @@ METRIC_GUIDANCE = [
 
 METRIC_SOURCE_NOTES = {
     "trueMonthlyCashFlow": (
-        "Dashboard underwriting snapshot (workbook B40). Deducts full monthly "
+        "Dashboard underwriting snapshot. Deducts full monthly "
         "totalMonthlyCapexReserve every month—not the post-cap pro forma path. "
         "After the reserve cap fills, annual cash improvement appears in pro "
-        "forma accumulatedTrueCashFlow (L16); see 10-Year Story."
+        "forma accumulated cash flow; see 10-Year Story."
     ),
-    "year10Roi": "Excludes reserve addback at sale (L15). Workbook B28.",
+    "year10Roi": "Excludes reserve returned at sale.",
 }
 
 EVIDENCE_METRIC_FIELDS = {
@@ -533,7 +530,7 @@ CALCULATION_LINKAGE_FIELDS = [
         "Gross Monthly Rent input",
     ),
     (
-        "Dashboard!B40",
+        "Dashboard",
         "True monthly cash flow",
         "actualGrossMonthlyRent",
         "input.actualGrossMonthlyRent",
@@ -549,7 +546,7 @@ CALCULATION_LINKAGE_FIELDS = [
         "Down Payment input",
     ),
     (
-        "10-Year Pro Forma!L17",
+        "10-Year Pro Forma",
         "Year 10 liquidation wealth",
         "appreciationRate",
         "input.appreciationRate",

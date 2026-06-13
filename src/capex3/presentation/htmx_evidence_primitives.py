@@ -21,6 +21,49 @@ def _evidence_drilldown(title: str, inner_html: str) -> str:
 </details>"""
 
 
+def _receipt_empty_row() -> str:
+    return '<div class="rcpt-row"><span>Evidence trace unavailable.</span><span class="rcpt-val">-</span></div>'
+
+
+def _receipt_waterfall(
+    rows_html: str,
+    *,
+    extra_classes: str = "",
+    receipt_id: str = "",
+) -> str:
+    classes = "receipt receipt-waterfall"
+    if extra_classes:
+        classes = f"{classes} {extra_classes.strip()}"
+    id_attr = f' id="{_attr(receipt_id)}"' if receipt_id else ""
+    return f'<div class="{_attr(classes)}"{id_attr}>{rows_html}</div>'
+
+
+def _receipt_panel(
+    title: str,
+    receipt_html: str,
+    *,
+    panel_class: str = "receipt-panel",
+    panel_id: str = "",
+) -> str:
+    id_attr = f' id="{_attr(panel_id)}"' if panel_id else ""
+    return f"""
+<div class="{_attr(panel_class)}"{id_attr}>
+  <p class="receipt-panel-kicker">{_html(title)}</p>
+  {receipt_html}
+</div>"""
+
+
+def _simple_receipt_row(label: object, value_html: str, *, row_class: str = "") -> str:
+    classes = "rcpt-row"
+    if row_class:
+        classes = f"{classes} {row_class}"
+    return f"""
+<div class="{_attr(classes)}">
+  <span class="rcpt-label">{_html(label)}</span>
+  <span class="rcpt-val">{value_html}</span>
+</div>"""
+
+
 def _evidence_focus_class(state: UiState, layer_id: str) -> str:
     if state.active_evidence_layer != layer_id or not state.active_metric_field:
         return ""
@@ -42,30 +85,7 @@ def _primary_reward_label_html(trace: Mapping[str, object], layer_id: str) -> st
 
 
 def _teaching_reward_disclaimer(trace: Mapping[str, object]) -> str:
-    teaching_meta = []
-    if trace.get("teachingOnly"):
-        teaching_meta.append("Teaching-only")
-    decision_id = trace.get("decisionId")
-    if decision_id:
-        teaching_meta.append(f"decision {decision_id}")
-    if trace.get("appRegressionOnly"):
-        teaching_meta.append("App-side regression only")
-    if trace.get("appOnlyResilience"):
-        teaching_meta.append("App-only resilience")
-    if trace.get("workbookCanonical") is False:
-        teaching_meta.append("not workbook-canonical")
-    if not teaching_meta:
-        return ""
-    source_note = trace.get("sourceNote") or ""
-    meta_line = " · ".join(teaching_meta)
-    decision_attr = (
-        f' data-decision-id="{_attr(str(decision_id))}"' if decision_id else ""
-    )
-    note_suffix = f" — {_html(str(source_note))}" if source_note else ""
-    return (
-        f'<p class="layer-copy disclaimer teaching-only"{decision_attr}>'
-        f"<strong>{_html(meta_line)}</strong>{note_suffix}</p>"
-    )
+    return ""
 
 
 def _evidence_layer_shell(
@@ -75,11 +95,12 @@ def _evidence_layer_shell(
     trace: Mapping[str, object],
     layer_copy: str = "",
     body_html: str,
+    include_reward_label: bool = True,
 ) -> str:
     preamble = []
     if layer_copy:
         preamble.append(layer_copy)
-    label = _primary_reward_label_html(trace, layer_id)
+    label = _primary_reward_label_html(trace, layer_id) if include_reward_label else ""
     if label:
         preamble.append(label)
     disclaimer = _teaching_reward_disclaimer(trace)
@@ -95,11 +116,13 @@ def _evidence_layer_shell(
 
 def _drivers_table(table_id: str, table_rows: str) -> str:
     return f"""
-<div class="tbl-scroll">
-  <table class="drv-tbl" id="{table_id}">
-    <thead>
-      <tr><th>Repair item</th><th>Monthly reserve</th><th>Share</th><th>Quantity</th><th>Age / life</th><th>Remaining</th><th>Source</th></tr>
-    </thead>
-    <tbody>{table_rows}</tbody>
-  </table>
+<div class="ledger-panel ledger-panel-inline">
+  <div class="tbl-scroll">
+    <table class="drv-tbl" id="{table_id}">
+      <thead>
+        <tr><th>Repair item</th><th>Monthly reserve</th><th>Share</th><th>Quantity</th><th>Age / life</th><th>Remaining</th><th>Source</th></tr>
+      </thead>
+      <tbody>{table_rows}</tbody>
+    </table>
+  </div>
 </div>"""

@@ -7,6 +7,7 @@ from typing import Mapping
 
 from capex3.presentation.htmx_evidence import _summary_cards_html
 from capex3.presentation.htmx_format import _display_value, _html
+from capex3.presentation.htmx_shell import _section_head
 from capex3.presentation.htmx_state import UiState, _hidden_attr_for_layer
 
 
@@ -44,8 +45,7 @@ def _diagnostics_section(state: UiState) -> str:
         },
     ]
     diagnostic_rows = _diagnostic_trace_rows(state)
-    return f"""
-<section class="evidence-layer" data-evidence-layer="diagnostics"{hidden}>
+    body = f"""
   <div id="diagnostic-summary" class="evidence-summary">{_summary_cards_html(cards)}</div>
   <details class="diagnostics-drilldown" id="diagnostics-drilldown">
     <summary>
@@ -60,7 +60,11 @@ def _diagnostics_section(state: UiState) -> str:
         <tbody>{diagnostic_rows}</tbody>
       </table>
     </div>
-  </details>
+  </details>"""
+    return f"""
+<section class="evidence-layer ledger-panel" data-evidence-layer="diagnostics"{hidden} id="diagnostics-ledger">
+{_section_head("Calculation diagnostics")}
+{body}
 </section>"""
 
 

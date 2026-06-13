@@ -19,6 +19,7 @@ from capex3.infrastructure.workbook_assumptions import (
     DATA_PACKAGE as INFRASTRUCTURE_DATA_PACKAGE,
     load_workbook_model_spec_record as load_infrastructure_workbook_model_spec_record,
 )
+from capex3.presentation.htmx_page import FONTS_STYLESHEET_PATH
 from capex3.presentation.http_contracts import (
     defaults_payload,
     workbench_payload,
@@ -112,8 +113,12 @@ class FocusedTargetVerificationTest(unittest.TestCase):
             PRESENTATION_ASSET_ROOT
         )
         asset_files = {
+            "charts.js",
+            "fonts.css",
             "index.html",
             "styles.css",
+            "tokens.css",
+            "vendor/highcharts.js",
             "vendor/htmx.min.js",
         }
         module_root = asset_root.joinpath("modules")
@@ -130,8 +135,12 @@ class FocusedTargetVerificationTest(unittest.TestCase):
         self.assertEqual(
             asset_files,
             {
+                "charts.js",
+                "fonts.css",
                 "index.html",
                 "styles.css",
+                "tokens.css",
+                "vendor/highcharts.js",
                 "vendor/htmx.min.js",
             },
         )
@@ -291,7 +300,13 @@ class FocusedTargetVerificationTest(unittest.TestCase):
                     )
                     self.assertEqual(NO_STORE_CACHE_CONTROL, cache_control)
 
-            for path in ["/assets/styles.css", "/assets/vendor/htmx.min.js"]:
+            for path in [
+                "/assets/tokens.css",
+                "/assets/styles.css",
+                "/assets/charts.js",
+                "/assets/vendor/highcharts.js",
+                "/assets/vendor/htmx.min.js",
+            ]:
                 with self.subTest(path=path):
                     _status, cache_control = self._request_cache_control(
                         f"{base_url}{path}"
@@ -330,6 +345,41 @@ class FocusedTargetVerificationTest(unittest.TestCase):
                         headers=headers,
                     )
                     self.assertEqual(NO_STORE_CACHE_CONTROL, cache_control)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+    def test_head_requests_mirror_get_status_and_length_without_body(self) -> None:
+        cases = [
+            ("/", HTTPStatus.OK),
+            (READINESS_PATH, HTTPStatus.OK),
+            ("/assets/tokens.css", HTTPStatus.OK),
+            ("/assets/styles.css", HTTPStatus.OK),
+            ("/missing-route", HTTPStatus.NOT_FOUND),
+        ]
+        server = infrastructure_create_server("127.0.0.1", 0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            host, port = server.server_address[:2]
+            base_url = f"http://{host}:{port}"
+            for path, expected_status in cases:
+                with self.subTest(path=path):
+                    get_status, get_length, get_body = self._request_with_length(
+                        f"{base_url}{path}",
+                        method="GET",
+                    )
+                    head_status, head_length, head_body = self._request_with_length(
+                        f"{base_url}{path}",
+                        method="HEAD",
+                    )
+                    self.assertEqual(get_status, expected_status.value)
+                    self.assertEqual(head_status, expected_status.value)
+                    self.assertEqual(head_length, get_length)
+                    self.assertEqual(len(get_body), get_length)
+                    self.assertGreater(get_length, 0)
+                    self.assertEqual(b"", head_body)
         finally:
             server.shutdown()
             server.server_close()
@@ -401,7 +451,7 @@ class FocusedTargetVerificationTest(unittest.TestCase):
                 {"activeStep": "decision"},
             )
 
-            self.assertIn("Deal Workbench", index)
+            self.assertIn("Deal Analyzer", index)
             self.assertIn("/assets/vendor/htmx.min.js", index)
             self.assertIn('hx-post="/ui/calculate"', index)
             self.assertNotIn("/assets/" + "modules/", index)
@@ -434,7 +484,7 @@ class FocusedTargetVerificationTest(unittest.TestCase):
                     self._request_json(f"{base_url}{READINESS_PATH}")["status"],
                     "ready",
                 )
-                self.assertIn("Deal Workbench", self._request_text(f"{base_url}/"))
+                self.assertIn("Deal Analyzer", self._request_text(f"{base_url}/"))
                 self.assertIn(
                     ".topbar",
                     self._request_text(f"{base_url}/assets/styles.css"),
@@ -513,6 +563,26 @@ class FocusedTargetVerificationTest(unittest.TestCase):
             finally:
                 error.close()
 
+    def _request_with_length(
+        self,
+        url: str,
+        *,
+        method: str = "GET",
+    ) -> tuple[int, int, bytes]:
+        request = urllib.request.Request(url, method=method)
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                body = response.read()
+                content_length = int(response.headers.get("Content-Length", len(body)))
+                return response.status, content_length, body
+        except urllib.error.HTTPError as error:
+            try:
+                body = error.read()
+                content_length = int(error.headers.get("Content-Length", len(body)))
+                return error.code, content_length, body
+            finally:
+                error.close()
+
     def _request_text(
         self,
         url: str,
@@ -535,8 +605,12 @@ class FocusedTargetVerificationTest(unittest.TestCase):
 class PresentationAssetMigrationTest(unittest.TestCase):
     def test_corrective_browser_assets_exist_in_capex3_presentation(self) -> None:
         expected_assets = {
+            "charts.js",
+            "fonts.css",
             "index.html",
             "styles.css",
+            "tokens.css",
+            "vendor/highcharts.js",
             "vendor/htmx.min.js",
         }
         actual_assets = {
@@ -550,9 +624,14 @@ class PresentationAssetMigrationTest(unittest.TestCase):
     def test_migrated_index_uses_htmx_static_asset_routes(self) -> None:
         index = (PRESENTATION_ASSET_DIR / "index.html").read_text(encoding="utf-8")
 
+        self.assertIn('href="/assets/tokens.css"', index)
         self.assertIn('href="/assets/styles.css"', index)
+        self.assertIn('src="/assets/vendor/highcharts.js"', index)
+        self.assertIn('src="/assets/charts.js"', index)
         self.assertIn('src="/assets/vendor/htmx.min.js"', index)
         self.assertIn('hx-get="/ui/app"', index)
+        self.assertIn('rel="preconnect" href="https://fonts.googleapis.com"', index)
+        self.assertIn(FONTS_STYLESHEET_PATH, index)
         self.assertNotIn('href="/styles.css"', index)
         self.assertNotIn('src="' + "/workbench" + '/main.js"', index)
         self.assertNotIn('type="' + 'module"', index)
@@ -586,6 +665,7 @@ class PresentationAssetMigrationTest(unittest.TestCase):
             if path.is_file()
             and path.suffix in {".html", ".css", ".js"}
             and path.as_posix().endswith("/vendor/htmx.min.js") is False
+            and path.as_posix().endswith("/vendor/highcharts.js") is False
         )
 
         expected_routes = {
@@ -605,7 +685,14 @@ class PresentationAssetMigrationTest(unittest.TestCase):
         self.assertEqual(0, all_browser_source.count("fetch" + "("))
         self.assertNotIn("XML" + "HttpRequest", all_browser_source)
         self.assertNotIn("http" + "://", all_browser_source)
-        self.assertNotIn("https" + "://", all_browser_source)
+        forbidden_https = [
+            line.strip()
+            for line in all_browser_source.splitlines()
+            if "https://" in line
+            and "fonts.googleapis.com" not in line
+            and "fonts.gstatic.com" not in line
+        ]
+        self.assertEqual([], forbidden_https)
         self.assertNotIn("rental_" + "capex2", all_browser_source)
         self.assertNotIn("C:\\Project\\rental_" + "capex2", all_browser_source)
         self.assertNotIn("/workbench" + "/", all_browser_source)

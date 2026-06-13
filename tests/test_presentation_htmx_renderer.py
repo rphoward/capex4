@@ -1,9 +1,12 @@
 from http import HTTPStatus
 import json
+import re
 from pathlib import Path
 import unittest
 from unittest.mock import patch
 
+from capex3.presentation import htmx_charts
+from capex3.presentation.htmx_page import FONTS_STYLESHEET_PATH, render_full_page
 from capex3.presentation.htmx_renderer import _resolve_overlap_warning_latch
 from capex3.presentation.rental_capex_http_api import HtmlResponse
 from capex3.presentation.rental_capex_http_api import handle_get
@@ -23,6 +26,15 @@ from capex3.presentation.http_contracts import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 STYLESHEET_PATH = REPO_ROOT / "src" / "capex3" / "presentation" / "browser_assets" / "styles.css"
+TOKENS_CSS_PATH = REPO_ROOT / "src" / "capex3" / "presentation" / "browser_assets" / "tokens.css"
+FONTS_CSS_PATH = REPO_ROOT / "src" / "capex3" / "presentation" / "browser_assets" / "fonts.css"
+
+
+def _css_hex_token(stylesheet: str, token_name: str) -> str:
+    match = re.search(rf"{re.escape(token_name)}:\s*(#[0-9a-fA-F]{{6}})", stylesheet)
+    if match is None:
+        raise AssertionError(f"Missing CSS token {token_name}")
+    return match.group(1).lower()
 
 
 class PresentationHtmxRendererTest(unittest.TestCase):
@@ -103,13 +115,16 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         )
 
         self.assertIsInstance(response, HtmlResponse)
-        self.assertIn("Solved preview", response.body)
-        self.assertIn('id="run-status">Solved preview</div>', response.body)
+        self.assertIn("Preview ready", response.body)
+        self.assertIn(
+            'id="run-status" role="status" aria-live="polite">Preview ready</div>',
+            response.body,
+        )
         self.assertIn('data-evidence-layer="whatWorks"', response.body)
         self.assertIn('name="solverApplyField" value="actualGrossMonthlyRent"', response.body)
         self.assertIn('name="solverSolvedValue"', response.body)
         self.assertIn('data-solver-apply hx-post="/ui/apply-solver"', response.body)
-        self.assertNotIn("Solver error", response.body)
+        self.assertNotIn("Couldn't solve", response.body)
 
     def test_apply_solver_updates_server_owned_form_state(self) -> None:
         response = handle_post(
@@ -122,10 +137,13 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         )
 
         self.assertIsInstance(response, HtmlResponse)
-        self.assertIn('id="run-status">Current</div>', response.body)
+        self.assertIn(
+            'id="run-status" role="status" aria-live="polite">Ready</div>',
+            response.body,
+        )
         self.assertIn('name="activeStep" value="decision"', response.body)
         self.assertIn('name="actualGrossMonthlyRent" value="4200.0"', response.body)
-        self.assertNotIn("Solved preview", response.body)
+        self.assertNotIn("Preview ready", response.body)
 
     def test_reset_restores_default_inputs_and_clears_walkthrough_overrides(self) -> None:
         default_rent = str(defaults_payload()["inputs"]["actualGrossMonthlyRent"])
@@ -178,7 +196,10 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         )
 
         self.assertIsInstance(response, HtmlResponse)
-        self.assertIn('id="run-status">Current</div>', response.body)
+        self.assertIn(
+            'id="run-status" role="status" aria-live="polite">Ready</div>',
+            response.body,
+        )
         self.assertIn('id="active-step-title">Listing Check</h2>', response.body)
         self.assertIn('id="evidence-title">10-Year Story</h2>', response.body)
         self.assertIn('name="componentOverridesJson" value="{}"', response.body)
@@ -205,32 +226,79 @@ class PresentationHtmxRendererTest(unittest.TestCase):
     def test_handoff_shell_visual_markers_are_server_rendered_and_css_owned(self) -> None:
         response = handle_get("/")
         stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+        tokens = TOKENS_CSS_PATH.read_text(encoding="utf-8")
 
         self.assertIsInstance(response, HtmlResponse)
         self.assertIn('class="topbar-left"', response.body)
         self.assertIn('class="brand-lockup"', response.body)
-        self.assertIn('class="deal-label" id="deal-label">Unlabeled deal · Avg Rent: 2-Bedroom</span>', response.body)
-        self.assertIn('class="input-panel left-panel"', response.body)
-        self.assertIn('class="output-panel right-panel"', response.body)
+        self.assertIn('class="deal-label" id="deal-label">New property · Avg Rent: 2-Bedroom</p>', response.body)
+        self.assertIn('class="input-panel left-panel calc-inputs"', response.body)
+        self.assertIn('class="output-panel right-panel calc-results"', response.body)
+        self.assertIn('class="calc-workbench"', response.body)
+        self.assertIn('id="results-summary"', response.body)
+        self.assertIn('class="summary-value num-display"', response.body)
+        self.assertIn('class="summary-panel results-hero-kpi"', response.body)
+        self.assertIn("Year 1 Total Return on Equity", response.body)
         self.assertIn('class="active-step active-step-summary"', response.body)
         self.assertIn('class="journey-step active"', response.body)
         self.assertIn('class="evidence-tab active"', response.body)
-        self.assertIn("--banana:", stylesheet)
-        self.assertIn("--banana-dim:", stylesheet)
-        self.assertIn("--depth-shadow:", stylesheet)
+        self.assertIn("--canvas:", tokens)
+        self.assertIn("--amber:", tokens)
+        self.assertIn("--hairline:", tokens)
+        self.assertIn("--depth-shadow:", tokens)
         self.assertIn(".deal-label", stylesheet)
-        self.assertIn("grid-template-columns: minmax(260px, 0.52fr) minmax(420px, 1fr);", stylesheet)
+        self.assertIn("grid-template-columns: minmax(300px, var(--input-col)) minmax(420px, var(--results-col));", stylesheet)
         self.assertIn("grid-template-columns: minmax(0, 1fr) 68px;", stylesheet)
         self.assertIn("overflow-y: auto;", stylesheet)
         self.assertIn("overscroll-behavior: contain;", stylesheet)
-        self.assertIn("border-radius: var(--radius);", stylesheet)
-        self.assertIn("border-bottom: 1px solid var(--banana-dim);", stylesheet)
-        self.assertIn("border-right: 1px solid var(--banana-dim);", stylesheet)
+        self.assertIn("border-radius: var(--radius-shell);", stylesheet)
+        self.assertIn("border: 1px solid var(--hairline)", stylesheet)
+        self.assertIn('href="/assets/tokens.css"', response.body)
         self.assertIn('src="/assets/vendor/htmx.min.js"', response.body)
+        self.assertIn('src="/assets/vendor/highcharts.js"', response.body)
+        self.assertIn('src="/assets/charts.js"', response.body)
         self.assertNotIn('type="' + 'module"', response.body)
         self.assertNotIn("/assets/" + "modules/", response.body)
-        self.assertNotIn("https" + "://", response.body)
         self.assertNotIn("https" + "://", stylesheet)
+
+    def test_refero_font_links_and_chart_token_parity(self) -> None:
+        page = render_full_page()
+        stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
+        tokens = TOKENS_CSS_PATH.read_text(encoding="utf-8")
+        combined_css = tokens + stylesheet
+        fonts_css = FONTS_CSS_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('rel="preconnect" href="https://fonts.googleapis.com"', page)
+        self.assertIn(FONTS_STYLESHEET_PATH, page)
+        self.assertIn('href="/assets/tokens.css"', page)
+        self.assertIn("Source+Sans+3", fonts_css)
+        self.assertIn("Source+Serif+4", fonts_css)
+        self.assertIn("IBM+Plex+Mono", fonts_css)
+        self.assertIn("--font-ui:", combined_css)
+        self.assertIn("--font-display:", combined_css)
+        self.assertIn("--font-mono:", combined_css)
+        self.assertIn("--link:", combined_css)
+        self.assertIn("--positive:", combined_css)
+        self.assertIn("--negative:", combined_css)
+        self.assertIn("--chart-grid:", combined_css)
+        self.assertIn("--chart-series-rental:", combined_css)
+
+        self.assertEqual(
+            _css_hex_token(tokens, "--chart-series-rental"),
+            htmx_charts.CHART_RENTAL.lower(),
+        )
+        self.assertEqual(
+            _css_hex_token(tokens, "--chart-series-cashflow"),
+            htmx_charts.CHART_CASHFLOW.lower(),
+        )
+        self.assertEqual(
+            _css_hex_token(tokens, "--chart-series-mm"),
+            htmx_charts.CHART_STONE.lower(),
+        )
+        self.assertEqual(
+            _css_hex_token(tokens, "--chart-series-ira"),
+            htmx_charts.CHART_COPPER.lower(),
+        )
 
     def test_slice2_journey_fields_controls_and_decision_packet_placeholder(self) -> None:
         listing = handle_get("/")
@@ -256,8 +324,8 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("Repair-cost inflation", walkthrough_fields)
         self.assertIn("Annual cleaning and maintenance", walkthrough_fields)
         self.assertIn("Rough rehab or make-ready", walkthrough_fields)
-        self.assertIn("Age Check", walkthrough.body)
-        self.assertIn("Size / Count Check", walkthrough.body)
+        self.assertNotIn("Age Check", walkthrough.body)
+        self.assertNotIn("Size / Count Check", walkthrough.body)
         self.assertIn('value="loan"', walkthrough.body)
 
         loan_fields = _field_grid_markup(loan.body)
@@ -274,10 +342,9 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("Closing cost override", loan_fields)
         self.assertIn('value="decision"', loan.body)
 
-        self.assertIn('id="decision-packet-placeholder"', decision.body)
+        self.assertNotIn('id="decision-packet-placeholder"', decision.body)
         self.assertIn("Decision Packet", decision.body)
-        self.assertIn("Generate packet", decision.body)
-        self.assertIn("disabled", decision.body)
+        self.assertNotIn("Generate packet", decision.body)
         self.assertNotIn('id="journey-actions"', decision.body)
 
     def test_phase4_slice3_operating_expense_hidden_defaults(self) -> None:
@@ -321,31 +388,31 @@ class PresentationHtmxRendererTest(unittest.TestCase):
 
         self.assertIn('id="evidence-mode">Following Listing Check</p>', default.body)
         self.assertIn('id="evidence-follow" name="evidenceFollowsStep" type="checkbox" value="true" checked', default.body)
-        self.assertIn('id="evidence-mode">Pinned: Repair Drivers</p>', pinned.body)
-        self.assertIn('class="pin-badge">Pinned</span>', pinned.body)
+        self.assertIn('id="evidence-mode">Viewing: Repair Drivers</p>', pinned.body)
+        self.assertNotIn('class="pin-badge">Pinned</span>', pinned.body)
         self.assertIn('id="overview-button"', pinned.body)
         self.assertIn('name="activeEvidenceLayer" value="tenYear"', pinned.body)
-        self.assertIn("Follow my step", pinned.body)
+        self.assertIn("Follow current step", pinned.body)
 
     def test_slice3_ten_year_story_uses_source_chart_shell_and_four_series(self) -> None:
         response = handle_get("/")
         stylesheet = STYLESHEET_PATH.read_text(encoding="utf-8")
 
-        self.assertIn('class="chart-wrap" id="ten-year-story-chart"', response.body)
+        self.assertIn('class="chart-wrap chart-stage" id="ten-year-story-chart"', response.body)
         self.assertIn('class="chart-side-legend"', response.body)
-        self.assertIn("Liquidation wealth (L17)", response.body)
-        self.assertIn("Cash position (L16 + initial)", response.body)
+        self.assertIn('class="highcharts-host" id="ten-year-story-chart-mount"', response.body)
+        self.assertIn("data-highcharts-config=", response.body)
+        self.assertIn("Liquidation wealth", response.body)
+        self.assertIn("Cash position (operating + initial)", response.body)
         self.assertIn("Money market", response.body)
         self.assertIn(">IRA</span>", response.body)
-        self.assertIn('class="rental-area"', response.body)
-        self.assertIn('class="ten-year-series cash-flow"', response.body)
-        self.assertIn('class="endpoint-label cash-flow"', response.body)
+        self.assertIn("areaspline", response.body)
+        self.assertIn("ShortDash", response.body)
         self.assertIn("four paths compared", response.body)
-        self.assertIn("Alternative paths use the workbook", response.body)
+        self.assertIn("Alternative paths use the money", response.body)
         self.assertIn(".chart-wrap", stylesheet)
         self.assertIn(".chart-side-legend", stylesheet)
-        self.assertIn(".ten-year-series.cash-flow", stylesheet)
-        self.assertIn(".endpoint-label", stylesheet)
+        self.assertIn(".highcharts-host", stylesheet)
         self.assertIn('value="repairFund"', response.body)
         self.assertIn("Repair Fund", response.body)
 
@@ -358,34 +425,31 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn('id="repair-fund-story-chart"', body)
         self.assertIn('id="repair-fund-info"', body)
         self.assertIn("Reserve balance vs. no-reserve surprise cost", body)
-        self.assertIn('class="repair-balance-series"', body)
-        self.assertIn('class="repair-surprise-series"', body)
-        self.assertIn('class="repair-event-marker"', body)
+        self.assertIn('class="highcharts-host" id="repair-fund-story-chart-mount"', body)
+        self.assertIn("&quot;step&quot;:&quot;left&quot;", body)
         self.assertIn('class="chart-legend repair-fund-legend"', body)
         self.assertIn("Cumulative surprise cost", body)
         self.assertIn('id="repair-fund-cards"', body)
-        self.assertIn("Dashboard monthly rate (B34)", body)
-        self.assertIn("reserve cap (B21)", body)
+        self.assertIn("Dashboard monthly rate", body)
+        self.assertIn("reserve cap", body)
         self.assertIn("Largest single repair", body)
         self.assertIn('class="fund-tbl" id="repair-fund-table"', body)
         self.assertIn("repairReservePathTrace", body)
-        self.assertIn("Teaching-only", body)
-        self.assertIn("not workbook-contract", body)
-        self.assertIn("Do not describe this layer as spreadsheet parity", body)
-        self.assertIn('class="layer-copy disclaimer teaching-only"', body)
-        self.assertIn(
+        self.assertNotIn("Teaching-only", body)
+        self.assertNotIn("not workbook-contract", body)
+        self.assertNotIn("Do not describe this layer as spreadsheet parity", body)
+        self.assertNotIn('class="layer-copy disclaimer teaching-only"', body)
+        self.assertNotIn(
             "repair_reserve_path_trace_workbook_vs_teaching",
             body,
         )
         self.assertIn("Dashboard rate", body)
-        self.assertIn("(B34)", body)
+        self.assertNotIn("(B34)", body)
         self.assertIn("not every year adds new set-aside", body)
         self.assertNotIn("/mo set aside - balance rebuilds", body)
         self.assertNotIn("savings rise from monthly deposits", body)
-        self.assertIn(".repair-balance-series", stylesheet)
-        self.assertIn(".repair-surprise-series", stylesheet)
-        self.assertIn(".repair-event-marker", stylesheet)
-        self.assertIn(".layer-copy.disclaimer.teaching-only", stylesheet)
+        self.assertIn(".highcharts-host", stylesheet)
+        self.assertNotIn(".layer-copy.disclaimer.teaching-only", stylesheet)
 
     def test_repair_fund_layer_surfaces_interest_earned_on_reserve(self) -> None:
         payload = calculate_payload({})
@@ -398,7 +462,7 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         response = handle_post("/ui/evidence", {"activeEvidenceLayer": "repairFund"})
         body = response.body
 
-        self.assertIn("Repair fund APY (B20)", body)
+        self.assertIn("Repair fund APY", body)
         self.assertIn("Interest earned Yr 0-10", body)
         self.assertIn("Interest-bearing reserve account", body)
         self.assertIn("not checking cash", body)
@@ -415,11 +479,11 @@ class PresentationHtmxRendererTest(unittest.TestCase):
 
         self.assertIn('id="solver-workbench"', body)
         self.assertIn("solver-workbench-disclaimer", body)
-        self.assertIn("App-side regression only", body)
-        self.assertIn("not workbook-canonical", body)
-        self.assertIn("fixtureContract.solverCasePolicy", body)
-        self.assertIn("solve_rental_capex", body)
-        self.assertIn(".layer-copy.disclaimer.app-regression", stylesheet)
+        self.assertIn("Each preview solves for one input", body)
+        self.assertNotIn("not workbook-canonical", body)
+        self.assertNotIn("fixtureContract.solverCasePolicy", body)
+        self.assertNotIn("solve_rental_capex", body)
+        self.assertIn(".layer-copy.disclaimer.solver-note", stylesheet)
 
     def test_slice6_solver_preview_and_what_works_regression_copy(self) -> None:
         solve = handle_post(
@@ -432,7 +496,7 @@ class PresentationHtmxRendererTest(unittest.TestCase):
             },
         )
         self.assertIn("solver-preview-footnote", solve.body)
-        self.assertIn("not workbook-canonical solver output", solve.body)
+        self.assertNotIn("not workbook-canonical solver output", solve.body)
 
         what_works = handle_post("/ui/evidence", {"activeEvidenceLayer": "whatWorks"})
         body = what_works.body
@@ -442,10 +506,10 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         )[0]
 
         self.assertIn('class="evidence-reward-label">Threshold questions</p>', what_works_layer)
-        self.assertIn('class="layer-copy disclaimer teaching-only"', what_works_layer)
-        self.assertIn("App-side regression only", what_works_layer)
-        self.assertIn("app regression solver", body.lower())
-        self.assertIn("not workbook-canonical solver output", body.lower())
+        self.assertNotIn('class="layer-copy disclaimer teaching-only"', what_works_layer)
+        self.assertIn("Thresholds under current assumptions", what_works_layer)
+        self.assertNotIn("app regression solver", body.lower())
+        self.assertNotIn("not workbook-canonical solver output", body.lower())
 
     def test_slice5_repair_fund_zero_monthly_reserve_copy(self) -> None:
         component_overrides = {
@@ -473,16 +537,15 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         )[0]
 
         self.assertIn('data-evidence-layer="tenYear"', response.body)
-        self.assertIn("Future property value (B23)", summary)
-        self.assertIn("Remaining loan balance (B24)", summary)
-        self.assertIn("Cost of sale (B25)", summary)
-        self.assertIn("Net proceeds (B26)", summary)
-        self.assertIn("Accumulated operating cash (L16)", summary)
-        self.assertIn("Reserve returned at sale (L15)", summary)
-        self.assertIn("Source: 10-Year Pro Forma B23", summary)
-        self.assertIn("Source: 10-Year Pro Forma B26", summary)
-        self.assertIn("Formula: B23 − B24 − B25", summary)
-        self.assertIn("Capped reserve balance addback at sale", summary)
+        self.assertIn("Future property value", summary)
+        self.assertIn("Remaining loan balance", summary)
+        self.assertIn("Cost of sale", summary)
+        self.assertIn("Net proceeds", summary)
+        self.assertIn("Accumulated operating cash", summary)
+        self.assertIn("Reserve returned at sale", summary)
+        self.assertNotIn("Source: 10-Year Pro Forma B23", summary)
+        self.assertNotIn("Formula: B23", summary)
+        self.assertIn("Capped reserve balance returned at sale", summary)
 
     def test_phase3_slice3_ten_year_dual_label_table_and_chart_honesty(self) -> None:
         response = handle_post("/ui/calculate", {})
@@ -492,20 +555,20 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         )[0]
         body = response.body
 
-        self.assertIn("Year-10 ROI (B28)", summary)
-        self.assertIn("Liquidation wealth (L17)", summary)
-        self.assertIn("Excludes reserve returned at sale (L15)", summary)
-        self.assertIn("Includes accumulated reserve (L15) returned at sale", summary)
-        self.assertIn("Liquidation wealth (L17)</th>", body)
-        self.assertIn("Accumulated cash (L16)</th>", body)
+        self.assertIn("Year-10 ROI", summary)
+        self.assertIn("Liquidation wealth", summary)
+        self.assertIn("Excludes reserve returned at sale", summary)
+        self.assertIn("Includes accumulated reserve returned at sale", summary)
+        self.assertIn("Liquidation wealth</th>", body)
+        self.assertIn("Accumulated cash</th>", body)
         self.assertIn("Annual reserve contribution</th>", body)
-        self.assertIn("Accumulated reserve (L15)</th>", body)
-        self.assertIn("Future property value (B23)</th>", body)
-        self.assertIn("Remaining loan balance (B24)</th>", body)
-        self.assertIn("Cost of sale (B25)</th>", body)
-        self.assertIn("Net proceeds (B26)</th>", body)
-        self.assertIn("Cash position (L16 + initial)</th>", body)
-        self.assertIn("cash position (l16 + initial)", body.lower())
+        self.assertIn("Accumulated reserve</th>", body)
+        self.assertIn("Future property value</th>", body)
+        self.assertIn("Remaining loan balance</th>", body)
+        self.assertIn("Cost of sale</th>", body)
+        self.assertIn("Net proceeds</th>", body)
+        self.assertIn("Cash position (operating + initial)</th>", body)
+        self.assertIn("cash position (operating + initial)", body.lower())
         self.assertNotIn("<th>Rental path</th>", body)
 
     def test_slice3_cash_flow_receipt_hides_engine_fields_in_reward_shows_in_drilldown(
@@ -523,38 +586,38 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         )[0]
         drilldown = cash_flow_layer.split('<details class="evidence-drilldown">', 1)[1]
 
-        self.assertIn('class="receipt evidence-reward"', response.body)
-        self.assertIn('class="evidence-reward-label">Receipt waterfall</p>', cash_flow_layer)
+        self.assertIn('class="receipt receipt-waterfall evidence-reward"', response.body)
+        self.assertIn('class="receipt-panel-kicker">Cash flow breakdown</p>', cash_flow_layer)
         self.assertIn("Expected monthly rent", reward)
         self.assertIn("Vacancy rate", reward)
         self.assertIn("Usable income", reward)
         self.assertIn("Monthly repair fund (snapshot)", reward)
-        self.assertIn("True monthly cash flow (B40)", reward)
+        self.assertIn("True monthly cash flow", reward)
         self.assertIn('class="rcpt-row sub"', reward)
         self.assertIn('class="rcpt-row total-row"', reward)
         self.assertIn('class="rcpt-val ded">-$', reward)
         self.assertIn('class="rcpt-val neg">-$', reward)
-        self.assertIn('class="rcpt-eng">actualGrossMonthlyRent</span>', reward)
-        self.assertIn(".evidence-reward .rcpt-eng", stylesheet)
-        self.assertIn('class="rcpt-eng">actualGrossMonthlyRent</span>', drilldown)
-        self.assertIn('class="rcpt-eng">totalMonthlyCapexReserve</span>', drilldown)
-        self.assertIn("Show workbook math", response.body)
+        self.assertNotIn('class="rcpt-eng">actualGrossMonthlyRent</span>', reward)
+        self.assertIn(".rcpt-eng", stylesheet)
+        self.assertNotIn('class="rcpt-eng">actualGrossMonthlyRent</span>', drilldown)
+        self.assertNotIn('class="rcpt-eng">totalMonthlyCapexReserve</span>', drilldown)
+        self.assertIn("See calculation details", response.body)
 
     def test_phase3_slice4_cash_flow_snapshot_labels_and_pro_forma_pointer(self) -> None:
         response = handle_post("/ui/evidence", {"activeEvidenceLayer": "cashFlow"})
         body = response.body
 
         self.assertIn('data-evidence-layer="cashFlow"', body)
-        self.assertIn("workbook dashboard snapshot (B40)", body)
-        self.assertIn("accumulatedTrueCashFlow (L16)", body)
+        self.assertIn("dashboard snapshot:", body)
+        self.assertIn("accumulated cash flow", body)
         self.assertIn("10-Year Story", body)
         self.assertIn("Monthly repair fund (snapshot)", body)
-        self.assertIn("True monthly cash flow (B40)", body)
+        self.assertIn("True monthly cash flow", body)
 
         trace = calculate_payload({})["result"]["traces"]["cashFlow"]
         bar_labels = [bar["label"] for bar in trace["graph"]["bars"]]
         self.assertIn("Repair fund (snapshot)", bar_labels)
-        self.assertIn("True monthly cash flow (B40)", bar_labels)
+        self.assertIn("True monthly cash flow", bar_labels)
 
         guidance = {
             item["field"]: item
@@ -562,15 +625,15 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         }
         self.assertEqual(
             guidance["trueMonthlyCashFlow"]["label"],
-            "True monthly cash flow (B40)",
+            "True monthly cash flow",
         )
-        self.assertIn("workbook B40", guidance["trueMonthlyCashFlow"]["sourceNote"])
-        self.assertIn("L16", guidance["trueMonthlyCashFlow"]["sourceNote"])
+        self.assertIn("Dashboard underwriting snapshot", guidance["trueMonthlyCashFlow"]["sourceNote"])
+        self.assertIn("accumulated cash flow", guidance["trueMonthlyCashFlow"]["sourceNote"])
         self.assertEqual(
             METRIC_GUIDANCE[0][1],
-            "True monthly cash flow (B40)",
+            "True monthly cash flow",
         )
-        self.assertIn("B40", METRIC_SOURCE_NOTES["trueMonthlyCashFlow"])
+        self.assertNotIn("B40", METRIC_SOURCE_NOTES["trueMonthlyCashFlow"])
 
     def test_slice3_repair_drivers_render_summary_cards_share_bars_and_other_bucket(self) -> None:
         response = handle_post("/ui/evidence", {"activeEvidenceLayer": "repairDrivers"})
@@ -602,9 +665,9 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn('class="slv-v">$', body)
         self.assertIn('class="slv-gap">$', body)
         self.assertIn('hx-post="/ui/solve-threshold"', body)
-        self.assertIn("Solver assumptions", body)
-        self.assertIn("fixtureContract.solverCasePolicy", body)
-        self.assertIn("app-side regression", body.lower())
+        self.assertIn("Assumptions behind the numbers", body)
+        self.assertNotIn("fixtureContract.solverCasePolicy", body)
+        self.assertNotIn("app-side regression", body.lower())
         self.assertIn(".slv-grid", stylesheet)
         self.assertIn(".evidence-drilldown", stylesheet)
 
@@ -644,7 +707,11 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         )[0]
 
         self.assertIn('name="activeEvidenceLayer" value="cashFlow"', response.body)
-        self.assertIn('class="receipt evidence-reward evidence-focus"', cash_flow_layer)
+        self.assertIn('id="metric-breakdown-panel"', response.body)
+        self.assertIn(
+            'class="receipt receipt-waterfall evidence-reward evidence-focus"',
+            response.body,
+        )
 
     def test_walkthrough_follow_step_opens_cash_flow_stability(self) -> None:
         response = handle_post("/ui/step", {"activeStep": "walkthrough"})
@@ -668,8 +735,8 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn('id="cash-flow-stability-refi-table"', body)
         self.assertIn('id="cash-flow-stability-payment-table"', body)
         self.assertIn("Not reserving does not remove the repair", body)
-        self.assertIn("App-only resilience", body)
-        self.assertIn("not workbook-contract", body)
+        self.assertNotIn("App-only resilience", body)
+        self.assertNotIn("not workbook-contract", body)
         self.assertIn(".two-path-comparison", stylesheet)
         self.assertIn(".offer-ready-panel", stylesheet)
 
@@ -681,7 +748,7 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("Offer-ready survival", body)
         self.assertIn(SURVIVAL_FAIL_HEADLINE, body)
         self.assertIn("Shock-adjusted cash flow (worst month)", body)
-        self.assertIn("True monthly cash flow (B40)", body)
+        self.assertIn("True monthly cash flow", body)
         self.assertIn('id="new-walkthrough-button"', body)
         self.assertIn('hx-post="/ui/new-walkthrough"', body)
         self.assertIn('name="overlapWarningLatched"', body)
