@@ -8,6 +8,7 @@ from unittest.mock import patch
 from capex3.presentation import htmx_charts
 from capex3.presentation.htmx_page import FONTS_STYLESHEET_PATH, render_full_page
 from capex3.presentation.htmx_renderer import _resolve_overlap_warning_latch
+from capex3.presentation.htmx_state import _coerce_down_payment_for_hidden_field
 from capex3.presentation.rental_capex_http_api import HtmlResponse
 from capex3.presentation.rental_capex_http_api import handle_get
 from capex3.presentation.rental_capex_http_api import handle_post
@@ -415,6 +416,62 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn(".highcharts-host", stylesheet)
         self.assertIn('value="repairFund"', response.body)
         self.assertIn("Repair Fund", response.body)
+
+    def test_listing_purchase_price_below_hidden_down_payment_still_renders_chart(
+        self,
+    ) -> None:
+        defaults = defaults_payload()["inputs"]
+        down_payment = defaults["downPayment"]
+        purchase_price = int(down_payment) - 1000
+
+        response = handle_post(
+            "/ui/calculate",
+            {
+                "activeStep": "listing",
+                "purchasePrice": str(purchase_price),
+                "downPayment": str(down_payment),
+            },
+        )
+
+        self.assertIsInstance(response, HtmlResponse)
+        self.assertIn(
+            'id="run-status" role="status" aria-live="polite">Ready</div>',
+            response.body,
+        )
+        self.assertNotIn("downPayment must not exceed purchasePrice", response.body)
+        self.assertIn("data-highcharts-config=", response.body)
+        self.assertIn('name="downPayment" value=""', response.body)
+        self.assertIn("$14,070 invested", response.body)
+
+    def test_loan_step_keeps_explicit_down_payment_validation(self) -> None:
+        response = handle_post(
+            "/ui/calculate",
+            {
+                "activeStep": "loan",
+                "purchasePrice": "50000",
+                "downPayment": "60000",
+            },
+        )
+
+        self.assertIsInstance(response, HtmlResponse)
+        self.assertIn("downPayment must not exceed purchasePrice", response.body)
+        self.assertNotIn("data-highcharts-config=", response.body)
+
+    def test_coerce_down_payment_for_hidden_field_only_when_stale(self) -> None:
+        inputs = {"purchasePrice": 50000.0, "downPayment": 60000.0}
+        _coerce_down_payment_for_hidden_field(inputs, visible_fields={"purchasePrice"})
+        self.assertIsNone(inputs["downPayment"])
+
+        inputs = {"purchasePrice": 50000.0, "downPayment": 60000.0}
+        _coerce_down_payment_for_hidden_field(
+            inputs,
+            visible_fields={"purchasePrice", "downPayment"},
+        )
+        self.assertEqual(60000.0, inputs["downPayment"])
+
+        inputs = {"purchasePrice": 50000.0, "downPayment": 40000.0}
+        _coerce_down_payment_for_hidden_field(inputs, visible_fields={"purchasePrice"})
+        self.assertEqual(40000.0, inputs["downPayment"])
 
     def test_slice5_repair_fund_layer_renders_live_trace_chart_and_summary(self) -> None:
         response = handle_post("/ui/evidence", {"activeEvidenceLayer": "repairFund"})

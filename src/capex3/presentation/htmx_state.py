@@ -98,6 +98,11 @@ def _build_state(form: Mapping[str, str], action: str) -> UiState:
     if active_step not in {step["id"] for step in journey_steps}:
         active_step = _first_id(journey_steps) or "listing"
 
+    _coerce_down_payment_for_hidden_field(
+        inputs,
+        visible_fields=set(_active_step(workbench, active_step).get("fields", [])),
+    )
+
     active_evidence_layer = form.get("activeEvidenceLayer", "") or "tenYear"
     active_metric_field = form.get("activeMetricField", "")
     evidence_follows_step = _form_bool(form, "evidenceFollowsStep", True)
@@ -433,6 +438,23 @@ def _first_manual_solver_variable_id(variables: Sequence[Mapping[str, object]]) 
 
 def _first_id(items: Sequence[Mapping[str, object]]) -> str:
     return str(items[0]["id"]) if items else ""
+
+
+def _coerce_down_payment_for_hidden_field(
+    inputs: dict[str, object],
+    *,
+    visible_fields: set[str],
+) -> None:
+    if "downPayment" in visible_fields:
+        return
+    down_payment = inputs.get("downPayment")
+    purchase_price = inputs.get("purchasePrice")
+    if not isinstance(down_payment, (int, float)) or not isinstance(
+        purchase_price, (int, float)
+    ):
+        return
+    if down_payment > purchase_price:
+        inputs["downPayment"] = None
 
 
 def _inputs_from_form(
