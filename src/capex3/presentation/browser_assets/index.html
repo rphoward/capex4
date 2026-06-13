@@ -3,18 +3,27 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Rental CapEx Model</title>
+    <title>Rental Deal Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="/assets/fonts.css">
+    <link rel="stylesheet" href="/assets/tokens.css">
     <link rel="stylesheet" href="/assets/styles.css">
+    <script src="/assets/vendor/highcharts.js" defer></script>
+    <script src="/assets/charts.js" defer></script>
     <script src="/assets/vendor/htmx.min.js" defer></script>
   </head>
   <body>
     <div id="app" hx-get="/ui/app" hx-trigger="load" hx-target="#app" hx-swap="outerHTML">
       <header class="topbar">
-        <div>
-          <p class="kicker">Rental CapEx</p>
-          <h1>Deal Workbench</h1>
+        <div class="topbar-left">
+          <div class="brand-lockup">
+            <p class="kicker">Rental Property</p>
+            <h1>Deal Analyzer</h1>
+          </div>
+          <p class="deal-label" id="deal-label">Loading…</p>
         </div>
-        <div class="run-status pending">Loading</div>
+        <div class="run-status pending" id="run-status" role="status">Loading</div>
       </header>
     </div>
   </body>

@@ -13,6 +13,7 @@ from capex3.presentation.http_contracts import (
 from capex3.presentation.htmx_format import (
     _bool_text,
     _control_value,
+    _format,
     _form_bool,
     _hidden,
     _json_for_hidden,
@@ -108,15 +109,16 @@ def _build_state(form: Mapping[str, str], action: str) -> UiState:
     if action == "metric":
         active_metric_field = form.get("activeMetricField", "")
         evidence_follows_step = False
-        nav = _metric_strip_navigation_by_field(workbench).get(active_metric_field)
-        if nav:
-            active_evidence_layer = str(nav.get("layer") or active_evidence_layer)
-        else:
-            metric = _metric_by_field(workbench).get(active_metric_field)
-            if metric:
-                active_evidence_layer = str(
-                    metric.get("evidenceLayerId") or active_evidence_layer
-                )
+        if active_metric_field:
+            nav = _metric_strip_navigation_by_field(workbench).get(active_metric_field)
+            if nav:
+                active_evidence_layer = str(nav.get("layer") or active_evidence_layer)
+            else:
+                metric = _metric_by_field(workbench).get(active_metric_field)
+                if metric:
+                    active_evidence_layer = str(
+                        metric.get("evidenceLayerId") or active_evidence_layer
+                    )
 
     if evidence_follows_step:
         active_evidence_layer = _evidence_layer_for_step(workbench, active_step)
@@ -135,14 +137,14 @@ def _build_state(form: Mapping[str, str], action: str) -> UiState:
 
     result: Mapping[str, object] | None
     error_message = ""
-    status_text = "Current"
+    status_text = "Ready"
     status_kind = "ok"
     try:
         result = calculate_payload(inputs)["result"]
     except Exception as error:
         result = None
         error_message = str(error)
-        status_text = "Input error"
+        status_text = "Check your inputs"
         status_kind = "error"
 
     overlap_detected = bool(result.get("overlapDetected")) if result else False
@@ -167,7 +169,7 @@ def _build_state(form: Mapping[str, str], action: str) -> UiState:
             threshold=action in {"solve-threshold", "solve-reserve-first-shortfall"},
             reserve_first_shortfall=action == "solve-reserve-first-shortfall",
         )
-        status_text = "Solved preview" if solver_preview.get("ok") else "Solver error"
+        status_text = "Preview ready" if solver_preview.get("ok") else "Couldn't solve"
         status_kind = "ok" if solver_preview.get("ok") else "error"
         if action == "solve-threshold":
             active_evidence_layer = "whatWorks"
@@ -287,6 +289,30 @@ def _hidden_attr_for_layer(state: UiState, layer_id: str) -> str:
 def _active_step(workbench: Mapping[str, object], step_id: str) -> Mapping[str, object]:
     steps = _journey_steps(workbench)
     return next((step for step in steps if step["id"] == step_id), steps[0] if steps else {})
+
+
+def _results_summary_for_state(state: UiState) -> dict[str, str]:
+    dashboard = state.result.get("dashboard", {}) if state.result else {}
+    layer = _active_evidence_layer(state)
+    metrics = _metric_by_field(state.workbench)
+    field = state.active_metric_field
+    if not field:
+        layer_metrics = _metric_fields_for_layer(state.workbench, state.active_evidence_layer)
+        field = str(layer_metrics[0]["field"]) if layer_metrics else ""
+    metric = metrics.get(field, {})
+    label = str(metric.get("label") or field or layer.get("title") or "Result")
+    value = _format(
+        dashboard.get(field),
+        metric.get("kind") or metric.get("valueKind"),
+    )
+    footnote = str(
+        metric.get("sourceNote")
+        or layer.get("description")
+        or "From the latest calculator result."
+    )
+    if len(footnote) > 120:
+        footnote = f"{footnote[:117]}..."
+    return {"label": label, "value": value, "footnote": footnote}
 
 
 def _active_evidence_layer(state: UiState) -> Mapping[str, object]:

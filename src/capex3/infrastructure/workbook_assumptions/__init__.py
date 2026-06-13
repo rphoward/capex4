@@ -171,7 +171,7 @@ def _component_lifespan_sources(
 
 def _load_source_json(file_name: str) -> Mapping[str, object]:
     source = resources.files(DATA_PACKAGE).joinpath(file_name)
-    with source.open("r", encoding="utf8") as source_file:
+    with source.open("r", encoding="utf-8") as source_file:
         return json.load(source_file)
 
 

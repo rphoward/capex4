@@ -24,6 +24,9 @@ from capex3.presentation.htmx_evidence_primitives import (
     _evidence_drilldown,
     _evidence_focus_class,
     _evidence_layer_shell,
+    _receipt_empty_row,
+    _receipt_waterfall,
+    _simple_receipt_row,
 )
 from capex3.presentation.htmx_state import UiState, _hidden_attr_for_layer
 
@@ -82,7 +85,7 @@ def _offer_ready_panel(state: UiState) -> str:
 </div>"""
 
     return f"""
-<div class="offer-ready-panel" id="offer-ready-panel">
+<div class="offer-ready-panel ledger-panel" id="offer-ready-panel">
   <div class="section-head compact">
     <h2>Offer-ready survival</h2>
     <button id="new-walkthrough-button" type="button" {_hx_post("/ui/new-walkthrough")}>New walkthrough</button>
@@ -122,9 +125,9 @@ def _cash_flow_stability_section(state: UiState) -> str:
         for row in _trace_collection(debt_shock, ("rows",))
     )
     if not planned_rows:
-        planned_rows = '<div class="rcpt-row"><span>Evidence trace unavailable.</span><span class="rcpt-val">-</span></div>'
+        planned_rows = _receipt_empty_row()
     if not debt_shock_rows:
-        debt_shock_rows = '<div class="rcpt-row"><span>Evidence trace unavailable.</span><span class="rcpt-val">-</span></div>'
+        debt_shock_rows = _receipt_empty_row()
 
     timeline = trace.get("debtLedgerTimeline", {})
     if not isinstance(timeline, Mapping):
@@ -171,14 +174,14 @@ def _cash_flow_stability_section(state: UiState) -> str:
     layer_copy = f'<p class="layer-copy">{_html(framing)}</p>' if framing else ""
     body = f"""
   <div id="cash-flow-stability-cards" class="evidence-summary cash-flow-stability-cards evidence-reward">{_summary_cards_html(_trace_summary_cards(trace))}</div>
-  <div class="two-path-comparison evidence-reward" id="cash-flow-stability-two-path">
-    <div class="two-path-column">
+  <div class="two-path-comparison evidence-reward ledger-panel-row" id="cash-flow-stability-two-path">
+    <div class="two-path-column ledger-panel">
       <h3>{_html(planned.get("title", "Planned reserve path"))}</h3>
-      <div class="receipt">{planned_rows}</div>
+      {_receipt_waterfall(planned_rows)}
     </div>
-    <div class="two-path-column">
+    <div class="two-path-column ledger-panel">
       <h3>{_html(debt_shock.get("title", "Debt-shock path"))}</h3>
-      <div class="receipt">{debt_shock_rows}</div>
+      {_receipt_waterfall(debt_shock_rows)}
     </div>
   </div>
   {drilldown}"""
@@ -197,12 +200,8 @@ def _cash_flow_stability_path_row(row: Mapping[str, object]) -> str:
     if kind == "boolean":
         display = "Yes" if value else "No"
     else:
-        display = _format(value, kind)
-    return f"""
-<div class="rcpt-row">
-  <span>{_html(row.get("label") or row.get("role") or "")}</span>
-  <span class="rcpt-val">{_html(display)}</span>
-</div>"""
+        display = _html(_format(value, kind))
+    return _simple_receipt_row(row.get("label") or row.get("role") or "", display)
 
 
 def _cash_flow_stability_refi_row(event: Mapping[str, object]) -> str:
@@ -366,7 +365,7 @@ def _reserve_solver_preview_html(
     if not preview.get("ok"):
         return f"""
 <div class="solver-preview error reserve-solver-preview">
-  <div class="solver-preview-head"><span class="preview-badge error">Solver error</span></div>
+  <div class="solver-preview-head"><span class="preview-badge error">Couldn't solve</span></div>
   <p>{_html(preview.get("message", "The reserve solver could not produce a preview."))}</p>
   {footnote}
 </div>"""
@@ -374,7 +373,7 @@ def _reserve_solver_preview_html(
     return f"""
 <div class="solver-preview current reserve-solver-preview">
   <div class="solver-preview-head">
-    <span class="preview-badge current">Reserve solver preview</span>
+    <span class="preview-badge current">Preview ready</span>
     <span>{_html(preview.get("assumptionText", ""))}</span>
   </div>
   <dl class="solver-preview-grid">
@@ -405,7 +404,7 @@ def _solver_preview_html(preview: Mapping[str, object]) -> str:
     if not preview.get("ok"):
         return f"""
 <div class="solver-preview error">
-  <div class="solver-preview-head"><span class="preview-badge error">Solver error</span></div>
+  <div class="solver-preview-head"><span class="preview-badge error">Couldn't solve</span></div>
   <p>{_html(preview.get("message", "The solver could not produce a preview."))}</p>
   {footnote}
 </div>"""
@@ -413,7 +412,7 @@ def _solver_preview_html(preview: Mapping[str, object]) -> str:
     return f"""
 <div class="solver-preview current">
   <div class="solver-preview-head">
-    <span class="preview-badge current">Solved preview</span>
+    <span class="preview-badge current">Preview ready</span>
     <span>{_html(preview.get("assumptionText", ""))}</span>
   </div>
   <dl class="solver-preview-grid">
@@ -436,15 +435,9 @@ def _solver_disclaimer_html(disclaimer: Mapping[str, object]) -> str:
     source_note = disclaimer.get("sourceNote")
     if not source_note:
         return ""
-    meta_parts = []
-    if disclaimer.get("appRegressionOnly"):
-        meta_parts.append("App-side regression only")
-    if disclaimer.get("workbookCanonical") is False:
-        meta_parts.append("not workbook-canonical")
-    meta_line = " · ".join(meta_parts) if meta_parts else "Solver disclaimer"
     return f"""
-  <p class="layer-copy disclaimer app-regression">
-    <strong>{_html(meta_line)}</strong> — {_html(str(source_note))}
+  <p class="layer-copy disclaimer solver-note">
+    <small>{_html(str(source_note))}</small>
   </p>"""
 
 
@@ -456,7 +449,7 @@ def _solver_workbench_disclaimer_html(workbench: Mapping[str, object]) -> str:
     if not block:
         return ""
     return block.replace(
-        'class="layer-copy disclaimer app-regression"',
-        'class="layer-copy disclaimer app-regression solver-workbench-disclaimer"',
+        'class="layer-copy disclaimer solver-note"',
+        'class="layer-copy disclaimer solver-note solver-workbench-disclaimer"',
         1,
     )

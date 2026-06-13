@@ -7,7 +7,7 @@ from typing import Mapping
 EVIDENCE_LAYER_PRESENTATION: dict[str, dict[str, str]] = {
     "cashFlow": {
         "primaryReward": "receipt",
-        "drilldownTitle": "Show workbook math",
+        "drilldownTitle": "See calculation details",
     },
     "repairDrivers": {
         "primaryReward": "drivers",
@@ -23,16 +23,16 @@ EVIDENCE_LAYER_PRESENTATION: dict[str, dict[str, str]] = {
     },
     "cashFlowStability": {
         "primaryReward": "twoPath",
-        "drilldownTitle": "Emergency ledger tables",
+        "drilldownTitle": "Emergency borrowing details",
     },
     "whatWorks": {
         "primaryReward": "thresholds",
-        "drilldownTitle": "Solver assumptions",
+        "drilldownTitle": "Assumptions behind the numbers",
     },
 }
 
 PRIMARY_REWARD_LABELS: dict[str, str] = {
-    "receipt": "Receipt waterfall",
+    "receipt": "Cash flow breakdown",
     "drivers": "Summary cards + top drivers",
     "summary": "Summary cards",
     "twoPath": "Two-path comparison",
@@ -66,7 +66,7 @@ def primary_reward_label_for_trace(
     return primary_reward_label(layer_id)
 
 
-def drilldown_title(trace: Mapping[str, object], fallback: str = "Show the math") -> str:
+def drilldown_title(trace: Mapping[str, object], fallback: str = "See calculation details") -> str:
     presentation = trace.get("presentation")
     if isinstance(presentation, Mapping):
         title = presentation.get("drilldownTitle")

@@ -3,11 +3,15 @@ from __future__ import annotations
 from typing import Mapping, Sequence
 
 from capex3.core.teaching.evidence_presentation import drilldown_title as _drilldown_title
+from capex3.core.teaching.evidence_presentation import primary_reward_key
 from capex3.presentation.htmx_evidence_primitives import (
     _drivers_table,
     _evidence_drilldown,
     _evidence_focus_class,
     _evidence_layer_shell,
+    _receipt_empty_row,
+    _receipt_panel,
+    _receipt_waterfall,
 )
 from capex3.presentation.htmx_format import (
     _attr,
@@ -16,13 +20,88 @@ from capex3.presentation.htmx_format import (
     _html,
     _hx_post,
 )
+from capex3.presentation.htmx_shell import _summary_panel
 from capex3.presentation.htmx_state import (
     UiState,
+    _active_evidence_layer,
+    _active_step,
     _evidence_layers,
     _hidden_attr_for_layer,
     _metric_strip_navigation_by_field,
+    _results_summary_for_state,
     _source_metric_strip_fields,
 )
+
+
+def _results_summary_strip(state: UiState) -> str:
+    summary = _results_summary_for_state(state)
+    return f"""
+  <div class="results-summary" id="results-summary">
+{_summary_panel(summary["label"], summary["value"], summary["footnote"])}
+  </div>"""
+
+
+def _output_panel(state: UiState) -> str:
+    # Deferred: htmx_charts imports trace helpers from this module.
+    from capex3.presentation.htmx_charts import _evidence_graph
+
+    error = (
+        f'<div id="calculation-error" class="calculation-error">{_html(state.error_message)}</div>'
+        if state.error_message
+        else '<div id="calculation-error" class="calculation-error" hidden></div>'
+    )
+    layer = _active_evidence_layer(state)
+    mode = (
+        f"Following {_active_step(state.workbench, state.active_step).get('title', '')}"
+        if state.evidence_follows_step
+        else f"Viewing: {layer.get('title', '')}"
+    )
+    checked = " checked" if state.evidence_follows_step else ""
+    overview_button = (
+        f"""<button id="overview-button" class="btn-ghost btn-sm overview-button" type="button" name="activeEvidenceLayer" value="tenYear" {_hx_post("/ui/evidence")}>Overview</button>"""
+        if state.active_evidence_layer != "tenYear"
+        else ""
+    )
+    pin_badge = ""
+    return f"""
+<section class="output-panel right-panel calc-results">
+  {error}
+{_results_summary_strip(state)}
+  <div class="results-body">
+    <div class="evidence-panel">
+      <div class="evidence-workbench">
+        <div class="evidence-content">
+          <div class="section-head compact evidence-head">
+            <div class="evidence-title-wrap">
+              <p class="step-kicker" id="evidence-mode">{_html(mode)}</p>
+              <div class="evidence-title-row">
+                {overview_button}
+                <h2 id="evidence-title">{_html(layer.get("title", ""))}</h2>
+                {pin_badge}
+              </div>
+              <p id="evidence-description" class="evidence-description">{_html(layer.get("description", ""))}</p>
+            </div>
+            <label class="follow-toggle">
+              <input type="hidden" name="evidenceFollowsStep" value="false">
+              <input id="evidence-follow" name="evidenceFollowsStep" type="checkbox" value="true"{checked} {_hx_post("/ui/calculate")} hx-trigger="change">
+              Follow current step
+            </label>
+          </div>
+          <div class="evidence-hero chart-stage">
+            {_evidence_graph(state)}
+          </div>
+          <div class="metric-grid metric-strip chart-summary" id="metric-grid" data-source-role="metric-strip">{_metric_cards(state)}</div>
+          {_metric_breakdown_panel(state)}
+          {_evidence_sections(state)}
+        </div>
+        <aside class="layer-rail" aria-label="Evidence layers">
+          <p>Views</p>
+          <div class="evidence-tabs" id="evidence-tabs">{_evidence_tabs(state)}</div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</section>"""
 
 
 def _evidence_tabs(state: UiState) -> str:
@@ -50,19 +129,45 @@ def _metric_cards(state: UiState) -> str:
         classes = ["metric"]
         if isinstance(value, (int, float)) and value < 0:
             classes.append("negative")
-        if field == state.active_metric_field or metric.get("evidenceLayerId") == state.active_evidence_layer:
+        is_active = field == state.active_metric_field
+        if is_active or metric.get("evidenceLayerId") == state.active_evidence_layer:
             classes.append("active")
-        expanded = "true" if field == state.active_metric_field else "false"
+        expanded = "true" if is_active else "false"
         nav = _metric_strip_navigation_by_field(state.workbench).get(field, {})
-        cta = str(nav.get("cta") or "Details")
+        cta = "Hide breakdown" if is_active else str(nav.get("cta") or "Details")
+        button_value = "" if is_active else field
         cards.append(
-            f"""<button type="button" class="{' '.join(classes)}" aria-expanded="{expanded}" name="activeMetricField" value="{_attr(field)}" {_hx_post("/ui/metric")}>
+            f"""<button type="button" class="{' '.join(classes)}" aria-expanded="{expanded}" name="activeMetricField" value="{_attr(button_value)}" {_hx_post("/ui/metric")}>
   <strong>{_html(metric.get("label", field))}</strong>
   <span>{_html(_format(value, metric.get("kind") or metric.get("valueKind")))}</span>
-  <small aria-hidden="true">{_html(cta)}</small>
+  <small class="metric-cta">{_html(cta)}</small>
 </button>"""
         )
     return "\n".join(cards)
+
+
+def _metric_breakdown_panel(state: UiState) -> str:
+    if not state.active_metric_field:
+        return ""
+    nav = _metric_strip_navigation_by_field(state.workbench).get(state.active_metric_field, {})
+    layer_id = str(nav.get("layer") or "")
+    if layer_id != state.active_evidence_layer:
+        return ""
+    expected_focus = primary_reward_key(layer_id)
+    if expected_focus and nav.get("focus") != expected_focus:
+        return ""
+    if layer_id != "cashFlow":
+        return ""
+    receipt_html = _cash_flow_receipt_waterfall(
+        state,
+        extra_classes="evidence-reward evidence-focus",
+    )
+    return _receipt_panel(
+        "Cash flow breakdown",
+        receipt_html,
+        panel_class="metric-breakdown-panel",
+        panel_id="metric-breakdown-panel",
+    )
 
 
 def _evidence_sections(state: UiState) -> str:
@@ -86,23 +191,31 @@ def _evidence_sections(state: UiState) -> str:
 def _cash_flow_section(state: UiState) -> str:
     hidden = _hidden_attr_for_layer(state, "cashFlow")
     trace = _result_trace(state, "cashFlow")
-    rows = _trace_collection(trace, ("rows", "lines"))
-    empty_row = '<div class="rcpt-row"><span>Evidence trace unavailable.</span><span class="rcpt-val">-</span></div>'
-    receipt_rows = (
-        "".join(_cash_flow_receipt_row(row) for row in rows) if rows else empty_row
-    )
     focus_class = _evidence_focus_class(state, "cashFlow")
-    receipt_html = f'<div class="receipt">{receipt_rows}</div>'
-    drilldown = _evidence_drilldown(_drilldown_title(trace), receipt_html)
     layer_copy = (
-        '<p class="layer-copy">This layer shows the workbook dashboard snapshot (B40): '
-        "true monthly cash flow after deducting the full monthly repair reserve every month—not "
-        "the post-cap annual contribution from the pro forma. After the reserve cap fills, cash "
-        "improvement shows up in pro forma accumulatedTrueCashFlow (L16); open the 10-Year Story "
-        "evidence layer to follow that path.</p>"
+        ""
+        if focus_class
+        else (
+            '<p class="layer-copy">This layer shows the dashboard snapshot: '
+            "true monthly cash flow after deducting the full monthly repair reserve every month—not "
+            "the post-cap annual contribution from the pro forma. After the reserve cap fills, cash "
+            "improvement shows up in accumulated cash flow; open the 10-Year Story "
+            "view to follow that path.</p>"
+        )
     )
-    body = f"""
-  <div class="receipt evidence-reward{focus_class}" id="cash-flow-receipt">{receipt_rows}</div>
+    receipt_reward = _cash_flow_receipt_waterfall(
+        state,
+        extra_classes="evidence-reward",
+        receipt_id="cash-flow-receipt",
+    )
+    receipt_detail = _cash_flow_receipt_waterfall(state, extra_classes="receipt-detail")
+    drilldown = _evidence_drilldown(_drilldown_title(trace), receipt_detail)
+    if focus_class:
+        body = f"""
+  {drilldown}"""
+    else:
+        body = f"""
+  {_receipt_panel("Cash flow breakdown", receipt_reward)}
   {drilldown}"""
     return _evidence_layer_shell(
         "cashFlow",
@@ -110,6 +223,28 @@ def _cash_flow_section(state: UiState) -> str:
         trace=trace,
         layer_copy=layer_copy,
         body_html=body,
+        include_reward_label=False,
+    )
+
+
+def _cash_flow_receipt_rows(state: UiState) -> str:
+    trace = _result_trace(state, "cashFlow")
+    rows = _trace_collection(trace, ("rows", "lines"))
+    if not rows:
+        return _receipt_empty_row()
+    return "".join(_cash_flow_receipt_row(row) for row in rows)
+
+
+def _cash_flow_receipt_waterfall(
+    state: UiState,
+    *,
+    extra_classes: str = "",
+    receipt_id: str = "",
+) -> str:
+    return _receipt_waterfall(
+        _cash_flow_receipt_rows(state),
+        extra_classes=extra_classes,
+        receipt_id=receipt_id,
     )
 
 
@@ -122,15 +257,10 @@ def _cash_flow_receipt_row(row: Mapping[str, object]) -> str:
         value_class += " ded"
     elif receipt_kind == "total":
         value_class += " neg" if isinstance(value, (int, float)) and value < 0 else " pos"
-    engine = ""
-    if receipt_kind not in {"subtotal", "total"}:
-        engine_field = row.get("engineField") or row.get("source") or row.get("formula") or ""
-        engine = f'<span class="rcpt-eng">{_html(engine_field)}</span>' if engine_field else ""
     return f"""
 <div class="rcpt-row {row_class}">
-  <span>{_html(row.get("label") or row.get("title") or row.get("id") or "")}</span>
+  <span class="rcpt-label">{_html(row.get("label") or row.get("title") or row.get("id") or "")}</span>
   <span class="{_attr(value_class)}">{_html(_format_receipt_value(value, row.get("kind")))}</span>
-  {engine}
 </div>"""
 
 
@@ -219,7 +349,7 @@ def _repair_drivers_section(state: UiState) -> str:
 def _repair_driver_row(row: Mapping[str, object]) -> str:
     share = _trace_value(row, ("shareOfReserve", "share", "percentOfReserve"))
     reserve = _trace_formatted_value(row, ("monthlyReserve", "value", "amount"), "moneyCents")
-    source_text = str(row.get("source") or row.get("overrideStatus") or "Workbook default")
+    source_text = str(row.get("source") or row.get("overrideStatus") or "Default")
     source_class = "source-override" if source_text == "Walkthrough override" else ""
     remaining_life = _trace_value(row, ("remainingLife",))
     remaining_text = row.get("remainingLifeLabel") or (
@@ -271,15 +401,15 @@ def _ten_year_section(state: UiState) -> str:
   <table class="evidence-table">
     <thead><tr>
       <th>Year</th>
-      <th>Liquidation wealth (L17)</th>
-      <th>Accumulated cash (L16)</th>
+      <th>Liquidation wealth</th>
+      <th>Accumulated cash</th>
       <th>Annual reserve contribution</th>
-      <th>Accumulated reserve (L15)</th>
-      <th>Future property value (B23)</th>
-      <th>Remaining loan balance (B24)</th>
-      <th>Cost of sale (B25)</th>
-      <th>Net proceeds (B26)</th>
-      <th>Cash position (L16 + initial)</th>
+      <th>Accumulated reserve</th>
+      <th>Future property value</th>
+      <th>Remaining loan balance</th>
+      <th>Cost of sale</th>
+      <th>Net proceeds</th>
+      <th>Cash position (operating + initial)</th>
       <th>Money market</th>
       <th>Conservative IRA</th>
     </tr></thead>
@@ -419,8 +549,6 @@ def _trace_receipt_cards(trace: Mapping[str, object]) -> list[dict[str, object]]
         if not label:
             continue
         details = [
-            f"Source: {receipt['workbookSource']}" if receipt.get("workbookSource") else "",
-            f"Formula: {receipt['formula']}" if receipt.get("formula") else "",
             receipt.get("sourceNote") or "",
         ]
         cards.append(

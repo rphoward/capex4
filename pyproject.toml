@@ -14,4 +14,4 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "capex3.infrastructure.workbook_assumptions" = ["data/*.json"]
-"capex3.presentation" = ["browser_assets/*.html", "browser_assets/*.css", "browser_assets/vendor/*.js"]
+"capex3.presentation" = ["browser_assets/*.html", "browser_assets/*.css", "browser_assets/*.js", "browser_assets/vendor/*.js"]

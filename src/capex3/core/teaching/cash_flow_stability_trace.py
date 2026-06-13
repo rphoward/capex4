@@ -124,7 +124,7 @@ def _summary_cards(
             "Shock-adjusted cash flow",
             shock_adjusted_cash_flow,
             "moneyCents",
-            note="Worst month: B40 minus emergency debt service.",
+            note="Worst month: Snapshot cash flow minus emergency debt service.",
         ),
     ]
     if overlap_detected:

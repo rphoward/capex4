@@ -15,7 +15,7 @@ SURVIVAL_FAIL_DETAIL = (
 )
 
 SHOCK_ADJUSTED_LABEL = "Shock-adjusted cash flow (worst month)"
-TRUE_MONTHLY_LABEL = "True monthly cash flow (B40)"
+TRUE_MONTHLY_LABEL = "True monthly cash flow"
 FLOOR_LABEL = "Your cash-flow floor"
 
 OVERLAP_WARNING_SHORT = (
@@ -34,7 +34,7 @@ RESERVE_SOLVER_OVERLAP_NOTE = (
     "Higher reserves do not clear a stacked emergency refi warning by themselves."
 )
 RESERVE_SOLVER_DISCLAIMER = (
-    "App-side resilience solver — not workbook Goal Seek or spreadsheet parity."
+    "Preview only — other assumptions stay the same."
 )
 RESERVE_SOLVER_YEAR_ONE_DECLINED = (
     "First repair shortfall is in year 1 — use make-ready / rehab budget instead."

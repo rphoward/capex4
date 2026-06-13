@@ -1,0 +1,96 @@
+/*
+ * Refero reference lock — composite Deal Workbench design system
+ *
+ * Primary foundation: Runway (style 436e4ca8-dcfe-43ee-ae50-5b4e2fc88b15)
+ * Data surfaces: Midday (style 7eb5e800-dff7-473b-84c2-71a98ebac23c)
+ * Page layout: Trulia rent-vs-buy (screen 7b0275ff-d717-4a37-afca-db681e5b279c)
+ * KPI + chart rhythm: Wealthsimple retirement calculator (screen 4f2cb529-3a19-4ce3-9d5c-4f29a7cdc038)
+ * Workbook tables: Equals cash burn (screen 33bfb3dd-f2d2-4bdc-9d76-f815ec52b134)
+ */
+:root {
+  /* Runway — canvas & ink */
+  --canvas: #f8f7f5;
+  --paper: #f8f7f5;
+  --panel: #ffffff;
+  --ink: #261b07;
+  --stone: #61594a;
+  --muted: #616161;
+  --line: #e3dfd5;
+  --border: #e3dfd5;
+  --hairline: #dbdad7;
+  --soft-line: #dbdad7;
+  --surface-tint: #f3f2ef;
+  --results-canvas: #f0f3f7;
+  --table-head: #f3f2ef;
+  --input-disabled: #f3f2ef;
+  --receipt-paper: #fffdf7;
+  --tooltip-bg: #261b07;
+  --graphite: #18181b;
+
+  /* Runway — amber CTA only */
+  --amber: #f9a600;
+  --amber-hover: #e89b01;
+  --amber-outline: #e89b01;
+
+  /* Semantic data */
+  --green: #1a7a4c;
+  --green-dark: #145a38;
+  --copper: #b85c28;
+  --red: #b8423a;
+  --blue: #2563a8;
+  --palm: #5a6b45;
+  --slate: #6b6560;
+  --link: #0027b3;
+  --positive: #486635;
+  --negative: #a43d12;
+
+  /* Radius — Runway shell vs Midday data */
+  --radius-shell: 12px;
+  --radius: var(--radius-shell);
+  --radius-button: 8px;
+  --radius-sm: 6px;
+  --radius-form: 4px;
+  --radius-data: 0;
+  --radius-pill: 999px;
+
+  /* Elevation — Runway card shadow */
+  --shadow: rgba(38, 27, 7, 0.06) 0 4px 8px;
+  --shadow-sm: rgba(38, 27, 7, 0.04) 0 2px 4px;
+  --shadow-tooltip: rgba(38, 27, 7, 0.12) 0 8px 18px;
+  --depth-shadow: none;
+
+  /* Spacing — Runway compact + Midday section rhythm */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --shell-gap: var(--space-4);
+  --workbench-gap: var(--space-5);
+  --panel-padding: var(--space-5);
+  --page-gutter: clamp(12px, 1.25vw, 20px);
+  --input-col: 0.4fr;
+  --results-col: 0.6fr;
+
+  /* Focus */
+  --focus-ring: rgba(249, 166, 0, 0.22);
+
+  /* Typography — Refero substitutes in fonts.css */
+  --font-ui: "Source Sans 3", system-ui, sans-serif;
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  --text-kpi: clamp(32px, 4.5vw, 44px);
+  --text-axis: 10px;
+  --text-label: 11px;
+
+  /* Chart series — sync with htmx_charts.py CHART_* constants */
+  --chart-grid: rgba(38, 27, 7, 0.05);
+  --chart-series-rental: #1a7a4c;
+  --chart-series-cashflow: #a43d12;
+  --chart-series-mm: #61594a;
+  --chart-series-ira: #b85c28;
+  --chart-area-opacity: 0.12;
+  --chart-line-width: 2;
+}

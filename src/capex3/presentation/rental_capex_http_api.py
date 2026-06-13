@@ -35,8 +35,12 @@ PRESENTATION_STATIC_ROUTE_PREFIX = "/assets/"
 NO_STORE_CACHE_CONTROL = "no-store"
 STATIC_BROWSER_ASSET_CACHE_CONTROL = "private, max-age=300"
 _CACHEABLE_BROWSER_ASSETS = {
+    PurePosixPath("fonts.css"),
+    PurePosixPath("tokens.css"),
     PurePosixPath("styles.css"),
+    PurePosixPath("charts.js"),
     PurePosixPath("vendor/htmx.min.js"),
+    PurePosixPath("vendor/highcharts.js"),
 }
 
 
@@ -229,7 +233,7 @@ class RentalCapexTeachingHeartbeatHandler(BaseHTTPRequestHandler):
             self._write_response(exception_response(error))
 
     def do_HEAD(self) -> None:
-        self._write_response(not_found_response())
+        self._write_response(handle_get(self.path), include_body=False)
 
     def log_message(self, format: str, *args: object) -> None:
         return
@@ -250,6 +254,8 @@ class RentalCapexTeachingHeartbeatHandler(BaseHTTPRequestHandler):
     def _write_response(
         self,
         response: HttpApiResponse | StaticAssetResponse | HtmlResponse,
+        *,
+        include_body: bool = True,
     ) -> None:
         if isinstance(response, StaticAssetResponse):
             self.send_response(response.status.value)
@@ -257,7 +263,8 @@ class RentalCapexTeachingHeartbeatHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(response.body)))
             self.send_header("Cache-Control", response.cache_control)
             self.end_headers()
-            self.wfile.write(response.body)
+            if include_body:
+                self.wfile.write(response.body)
             return
 
         if isinstance(response, HtmlResponse):
@@ -267,7 +274,8 @@ class RentalCapexTeachingHeartbeatHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(encoded)))
             self.send_header("Cache-Control", NO_STORE_CACHE_CONTROL)
             self.end_headers()
-            self.wfile.write(encoded)
+            if include_body:
+                self.wfile.write(encoded)
             return
 
         encoded = json.dumps(
@@ -280,7 +288,8 @@ class RentalCapexTeachingHeartbeatHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(encoded)))
         self.send_header("Cache-Control", NO_STORE_CACHE_CONTROL)
         self.end_headers()
-        self.wfile.write(encoded)
+        if include_body:
+            self.wfile.write(encoded)
 
 
 def _request_path(raw_path: str) -> str:
