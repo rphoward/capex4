@@ -91,13 +91,20 @@
     });
   }
 
+  function mountChartsInApp() {
+    var app = document.getElementById("app");
+    mountCharts(app || document);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
-    mountCharts(document);
+    mountChartsInApp();
   });
 
-  document.body.addEventListener("htmx:afterSwap", function (event) {
-    if (event.detail && event.detail.target) {
-      mountCharts(event.detail.target);
+  document.body.addEventListener("htmx:afterSettle", function (event) {
+    var target = event.detail && event.detail.target;
+    if (!target || target.id !== "app") {
+      return;
     }
+    mountChartsInApp();
   });
 })();
