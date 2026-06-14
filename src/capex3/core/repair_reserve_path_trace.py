@@ -6,6 +6,8 @@ def compute_repair_reserve_path_trace(
     input_data: Mapping[str, object],
     dashboard: Mapping[str, object],
     sinking_fund_rows: Sequence[Mapping[str, object]],
+    *,
+    annual_cash_flow: float = 0.0,
 ) -> dict[str, object]:
     monthly_bump = float(input_data.get("monthlyReserveIncrease") or 0.0)
     base_monthly_contribution = float(dashboard["totalMonthlyCapexReserve"])
@@ -34,6 +36,7 @@ def compute_repair_reserve_path_trace(
 
     yearly_rows: list[dict[str, object]] = []
     balance = 0.0
+    earnings_so_far = 0.0
     cumulative_no_reserve_cost = 0.0
     largest_event: dict[str, object] | None = None
     total_event_cost = 0.0
@@ -49,6 +52,13 @@ def compute_repair_reserve_path_trace(
             if base_annual_contribution > 0 and starting_balance < target_reserve
             else 0.0
         )
+        freed_reserve = (
+            base_annual_contribution
+            if base_annual_contribution > 0 and starting_balance >= target_reserve
+            else 0.0
+        )
+        if year > 0:
+            earnings_so_far += annual_cash_flow + freed_reserve
         contribution = base_contribution + bump_annual_contribution
         balance_before_repairs = min(
             target_reserve,
@@ -73,6 +83,9 @@ def compute_repair_reserve_path_trace(
                 "balanceBeforeRepairs": balance_before_repairs,
                 "repairCost": repair_cost,
                 "endingBalance": ending_balance,
+                "reserveEndingBalance": ending_balance,
+                "freedReserve": freed_reserve,
+                "earningsSoFar": earnings_so_far,
                 "noReserveSurpriseCost": cumulative_no_reserve_cost,
                 "events": year_events,
                 "status": repair_reserve_year_status(

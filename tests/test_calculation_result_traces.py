@@ -37,15 +37,16 @@ class CalculationResultTracesTest(unittest.TestCase):
         self.assertEqual(traces["whatWorks"]["id"], "whatWorks")
         self.assertEqual(traces["cashFlowStability"]["id"], "cashFlowStability")
 
-    def test_repair_fund_trace_carries_teaching_only_flags(self) -> None:
+    def test_repair_fund_trace_carries_app_regression_flags(self) -> None:
         trace = calculate_payload({})["result"]["traces"]["repairFund"]
 
         self.assertIs(trace["workbookCanonical"], False)
-        self.assertIs(trace["teachingOnly"], True)
+        self.assertIs(trace["appRegressionOnly"], True)
         self.assertEqual(
             trace["decisionId"],
             "repair_reserve_path_trace_workbook_vs_teaching",
         )
+        self.assertNotIn("teachingOnly", trace)
 
     def test_what_works_question_count_matches_threshold_catalog(self) -> None:
         payload = calculate_payload({})

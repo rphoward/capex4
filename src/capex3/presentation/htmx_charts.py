@@ -7,17 +7,18 @@ from capex3.presentation.htmx_state import UiState
 from capex3.presentation.htmx_trace import _result_trace, _trace_collection
 
 TEN_YEAR_SERIES_CLASSES = {
-    "rental": "rental",
-    "cashFlow": "cash-flow",
+    "sellNow": "sell-now",
+    "earnings": "earnings",
     "moneyMarket": "money-market",
     "conservativeIra": "ira",
 }
 
 # Chart colors must mirror --chart-series-* in tokens.css.
-CHART_RENTAL = "#1a7a4c"
-CHART_CASHFLOW = "#a43d12"
-CHART_STONE = "#61594a"
-CHART_COPPER = "#b85c28"
+CHART_SELL_NOW = "#1a7a4c"
+CHART_EARNINGS = "#2b6cb0"
+CHART_STONE = "#6b7280"
+CHART_COPPER = "#b45309"
+CHART_LOSS = "#b42318"
 CHART_AREA_OPACITY_TOP = 0.12
 CHART_AREA_OPACITY_BOTTOM = 0.02
 
@@ -57,6 +58,9 @@ def _line_series_from_graph(
         }
         if class_for_id is not None:
             entry["className"] = class_for_id.get(series_id, series_id)
+        source_note = item.get("sourceNote")
+        if source_note:
+            entry["sourceNote"] = str(source_note)
         series.append(entry)
     return series
 
@@ -92,11 +96,22 @@ def _point(
     max_y: float,
     height: int,
 ) -> tuple[float, float]:
+    return _point_at_fraction(float(index), value, count, min_y, max_y, height)
+
+
+def _point_at_fraction(
+    index_fraction: float,
+    value: float,
+    count: int,
+    min_y: float,
+    max_y: float,
+    height: int,
+) -> tuple[float, float]:
     left, top, width, plot_height = _plot_area(height)
     if count <= 1:
         x = left + width / 2
     else:
-        x = left + (index / (count - 1)) * width
+        x = left + (index_fraction / (count - 1)) * width
     span = max(max_y - min_y, 1.0)
     y = top + plot_height - ((value - min_y) / span) * plot_height
     return x, y
@@ -144,7 +159,14 @@ def _year_categories(count: int) -> list[str]:
     return ["Now" if year == 0 else f"Yr {year}" for year in range(count)]
 
 
-def _axis_markup(point_count: int, min_y: float, max_y: float, height: int) -> str:
+def _axis_markup(
+    point_count: int,
+    min_y: float,
+    max_y: float,
+    height: int,
+    *,
+    draw_zero_line: bool = False,
+) -> str:
     left, top, width, plot_height = _plot_area(height)
     baseline_y = top + plot_height
     tick_count = 5
@@ -169,6 +191,17 @@ def _axis_markup(point_count: int, min_y: float, max_y: float, height: int) -> s
         f'x2="{left + width:.2f}" y2="{baseline_y:.2f}"/>'
     )
 
+    if draw_zero_line and min_y < 0 < max_y:
+        _, zero_y = _point(0, 0.0, point_count, min_y, max_y, height)
+        parts.append(
+            f'<line class="chart-zero-line" x1="{left:.2f}" y1="{zero_y:.2f}" '
+            f'x2="{left + width:.2f}" y2="{zero_y:.2f}"/>'
+        )
+        parts.append(
+            f'<text class="chart-zero-label" x="{left - 8:.2f}" y="{zero_y + 3:.2f}" '
+            f'text-anchor="end">$0</text>'
+        )
+
     categories = _year_categories(point_count)
     tick_interval = 2 if point_count > 6 else 1
     for index, label in enumerate(categories):
@@ -186,20 +219,20 @@ def _axis_markup(point_count: int, min_y: float, max_y: float, height: int) -> s
 def _svg_defs(kind: str) -> str:
     if kind == "ten-year":
         return f"""<defs>
-        <linearGradient id="rentalGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="{_hex_alpha(CHART_RENTAL, CHART_AREA_OPACITY_TOP)}"/>
-          <stop offset="1" stop-color="{_hex_alpha(CHART_RENTAL, CHART_AREA_OPACITY_BOTTOM)}"/>
+        <linearGradient id="sellNowGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="{_hex_alpha(CHART_SELL_NOW, CHART_AREA_OPACITY_TOP)}"/>
+          <stop offset="1" stop-color="{_hex_alpha(CHART_SELL_NOW, CHART_AREA_OPACITY_BOTTOM)}"/>
         </linearGradient>
       </defs>"""
     if kind == "repair-fund":
         return f"""<defs>
         <linearGradient id="repairBalanceGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="{_hex_alpha(CHART_RENTAL, CHART_AREA_OPACITY_TOP)}"/>
-          <stop offset="1" stop-color="{_hex_alpha(CHART_RENTAL, CHART_AREA_OPACITY_BOTTOM)}"/>
+          <stop offset="0" stop-color="{_hex_alpha(CHART_SELL_NOW, CHART_AREA_OPACITY_TOP)}"/>
+          <stop offset="1" stop-color="{_hex_alpha(CHART_SELL_NOW, CHART_AREA_OPACITY_BOTTOM)}"/>
         </linearGradient>
         <linearGradient id="surpriseCostGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="{_hex_alpha(CHART_CASHFLOW, CHART_AREA_OPACITY_TOP)}"/>
-          <stop offset="1" stop-color="{_hex_alpha(CHART_CASHFLOW, CHART_AREA_OPACITY_BOTTOM)}"/>
+          <stop offset="0" stop-color="{_hex_alpha(CHART_LOSS, CHART_AREA_OPACITY_TOP)}"/>
+          <stop offset="1" stop-color="{_hex_alpha(CHART_LOSS, CHART_AREA_OPACITY_BOTTOM)}"/>
         </linearGradient>
       </defs>"""
     return ""
@@ -218,6 +251,77 @@ def _series_points(
     ]
 
 
+def _series_tooltip(item: Mapping[str, object]) -> str:
+    source_note = item.get("sourceNote")
+    label = str(item["label"])
+    if source_note:
+        return f"{label}: {source_note}"
+    return label
+
+
+def _zero_crossing_fraction(previous_value: float, current_value: float) -> float:
+    span = previous_value - current_value
+    if span == 0:
+        return 0.0
+    return previous_value / span
+
+
+def _underwater_line_paths(
+    values: Sequence[float],
+    point_count: int,
+    min_y: float,
+    max_y: float,
+    height: int,
+) -> list[str]:
+    paths: list[str] = []
+    run: list[tuple[float, float]] = []
+    for index, value in enumerate(values):
+        numeric = float(value)
+        point = _point(index, numeric, point_count, min_y, max_y, height)
+        if numeric < 0:
+            if not run and index > 0:
+                previous = float(values[index - 1])
+                if previous >= 0:
+                    cross_index = (index - 1) + _zero_crossing_fraction(
+                        previous,
+                        numeric,
+                    )
+                    run.append(
+                        _point_at_fraction(
+                            cross_index,
+                            0.0,
+                            point_count,
+                            min_y,
+                            max_y,
+                            height,
+                        )
+                    )
+            run.append(point)
+            continue
+        if run:
+            previous = float(values[index - 1])
+            if previous < 0:
+                cross_index = (index - 1) + _zero_crossing_fraction(
+                    previous,
+                    numeric,
+                )
+                run.append(
+                    _point_at_fraction(
+                        cross_index,
+                        0.0,
+                        point_count,
+                        min_y,
+                        max_y,
+                        height,
+                    )
+                )
+            paths.append(_line_path(run))
+            run = []
+    if run:
+        paths.append(_line_path(run))
+    return paths
+
+
 def _ten_year_endpoints(
     series: Sequence[Mapping[str, object]],
     point_count: int,
@@ -228,7 +332,7 @@ def _ten_year_endpoints(
     parts: list[str] = []
     for item in series:
         class_name = str(item["className"])
-        if class_name == "rental":
+        if class_name == "sell-now":
             continue
         values = item["values"]
         if not isinstance(values, list) or not values:
@@ -241,7 +345,7 @@ def _ten_year_endpoints(
         parts.append(
             f"""<g class="endpoint {css_class}">
         <circle cx="{x:.2f}" cy="{y:.2f}" r="4"/>
-        <title>{_html(str(item["label"]))}: {_html(label)}</title>
+        <title>{_html(_series_tooltip(item))}: {_html(label)}</title>
         <text class="endpoint-label {css_class}" x="{label_x:.2f}" y="{y - 6:.2f}" text-anchor="{anchor}">{_html(label)}</text>
       </g>"""
         )
@@ -255,43 +359,79 @@ def _ten_year_svg(
     max_y: float,
 ) -> str:
     height = TEN_YEAR_SVG_HEIGHT
-    _, top, _, plot_height = _plot_area(height)
+    left, top, _, plot_height = _plot_area(height)
     baseline_y = top + plot_height
+    zero_y = _point(0, 0.0, point_count, min_y, max_y, height)[1]
+    draw_zero = min_y < 0 < max_y
     parts: list[str] = [
         f"""<svg class="server-svg-chart" width="{SVG_WIDTH}" height="{height}" """
         f"""viewBox="0 0 {SVG_WIDTH} {height}" role="img" """
         f"""aria-label="{_attr("Total wealth position over 10 years")}">
       <title>Total wealth position over 10 years</title>
-      <desc>Four wealth paths compared over ten years: rental liquidation, """
-        """cash position, money market, and IRA.</desc>""",
+      <desc>Four wealth paths compared over ten years: sell-now wealth, """
+        """earnings so far, money market, and IRA.</desc>""",
         _svg_defs("ten-year"),
-        _axis_markup(point_count, min_y, max_y, height),
+        _axis_markup(point_count, min_y, max_y, height, draw_zero_line=draw_zero),
     ]
 
-    rental_item = next((item for item in series if item["className"] == "rental"), None)
-    if rental_item is not None:
-        rental_values = rental_item["values"]
-        if isinstance(rental_values, list) and rental_values:
-            rental_points = _series_points(rental_values, point_count, min_y, max_y, height)
-            parts.append(
-                f'<path class="rental-area" d="{_attr(_area_path(rental_points, baseline_y))}"/>'
+    if draw_zero:
+        parts.append(
+            f'<rect class="chart-loss-band" x="{left:.2f}" y="{zero_y:.2f}" '
+            f'width="{SVG_WIDTH - CHART_PAD_LEFT - CHART_PAD_RIGHT:.2f}" '
+            f'height="{baseline_y - zero_y:.2f}"/>'
+        )
+
+    sell_now_item = next(
+        (item for item in series if item["className"] == "sell-now"),
+        None,
+    )
+    if sell_now_item is not None:
+        sell_now_values = sell_now_item["values"]
+        if isinstance(sell_now_values, list) and sell_now_values:
+            sell_now_points = _series_points(
+                sell_now_values,
+                point_count,
+                min_y,
+                max_y,
+                height,
             )
+            area_baseline = zero_y if draw_zero or min_y < 0 else baseline_y
             parts.append(
-                f'<path class="ten-year-series rental" d="{_attr(_line_path(rental_points))}"/>'
+                f'<path class="sell-now-area" d="{_attr(_area_path(sell_now_points, area_baseline))}"/>'
             )
+            tooltip = _attr(_series_tooltip(sell_now_item))
+            parts.append(
+                f'<path class="ten-year-series sell-now" '
+                f'd="{_attr(_line_path(sell_now_points))}">'
+                f"<title>{tooltip}</title></path>"
+            )
+            if draw_zero:
+                for path_d in _underwater_line_paths(
+                    sell_now_values,
+                    point_count,
+                    min_y,
+                    max_y,
+                    height,
+                ):
+                    parts.append(
+                        f'<path class="ten-year-series sell-now-underwater" '
+                        f'd="{_attr(path_d)}"/>'
+                    )
 
     for item in series:
         class_name = str(item["className"])
-        if class_name == "rental":
+        if class_name == "sell-now":
             continue
         values = item["values"]
         if not isinstance(values, list) or not values:
             continue
         points = _series_points(values, point_count, min_y, max_y, height)
         css_class = _attr(class_name)
+        tooltip = _attr(_series_tooltip(item))
         parts.append(
             f'<path class="ten-year-series {css_class}" '
-            f'd="{_attr(_line_path(points))}"/>'
+            f'd="{_attr(_line_path(points))}">'
+            f"<title>{tooltip}</title></path>"
         )
 
     parts.append(_ten_year_endpoints(series, point_count, min_y, max_y, height))
@@ -381,7 +521,7 @@ def _ten_year_chart(state: UiState) -> str:
 
     legend = "".join(
         f"""
-      <span><i class="legend-swatch {_attr(item['className'])}"></i>{_html(item['label'])}</span>"""
+      <span title="{_attr(_series_tooltip(item))}"><i class="legend-swatch {_attr(item['className'])}"></i>{_html(item['label'])}</span>"""
         for item in series
     )
     note = trace.get("note") or (

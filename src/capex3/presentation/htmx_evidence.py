@@ -405,7 +405,7 @@ def _ten_year_section(state: UiState) -> str:
   <table class="evidence-table">
     <thead><tr>
       <th>Year</th>
-      <th>Liquidation wealth</th>
+      <th>Liquidation wealth (L17)</th>
       <th>Accumulated cash</th>
       <th>Annual reserve contribution</th>
       <th>Accumulated reserve</th>

@@ -12,13 +12,11 @@ from capex3.presentation.http_contracts import (
 
 
 class RepairReservePathTraceTest(unittest.TestCase):
-    def test_repair_fund_trace_view_model_is_teaching_only_not_workbook_canonical(
-        self,
-    ) -> None:
+    def test_repair_fund_trace_view_model_is_app_owned_calculation_truth(self) -> None:
         trace = _trace({})
 
         self.assertIs(trace["workbookCanonical"], False)
-        self.assertIs(trace["teachingOnly"], True)
+        self.assertIs(trace["appRegressionOnly"], True)
         self.assertEqual(
             trace["decisionId"],
             "repair_reserve_path_trace_workbook_vs_teaching",
@@ -27,10 +25,8 @@ class RepairReservePathTraceTest(unittest.TestCase):
         self.assertIn("proForma[].annualCapexContribution", trace["canonicalReserveFields"])
         self.assertIn("dashboard.targetCapExReserve", trace["canonicalReserveFields"])
         source_note = str(trace["sourceNote"]).lower()
-        self.assertIn("teaching-only", source_note)
-        self.assertIn("not in the 17-case", source_note)
-        self.assertIn("do not describe", source_note)
-        self.assertIn("spreadsheet parity", source_note)
+        self.assertIn("app-owned", source_note)
+        self.assertIn("workbook-parity", source_note)
 
     def test_no_repair_events_in_10_years_keeps_stable_rows_and_empty_markers(self) -> None:
         trace = _trace({"effectiveAgeYears": -10})

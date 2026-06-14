@@ -87,10 +87,11 @@
 
   /* Chart series — sync with htmx_charts.py CHART_* constants */
   --chart-grid: rgba(38, 27, 7, 0.05);
-  --chart-series-rental: #1a7a4c;
-  --chart-series-cashflow: #a43d12;
-  --chart-series-mm: #61594a;
-  --chart-series-ira: #b85c28;
+  --chart-series-sellnow: #1a7a4c;
+  --chart-series-earnings: #2b6cb0;
+  --chart-series-mm: #6b7280;
+  --chart-series-ira: #b45309;
+  --chart-series-loss: #b42318;
   --chart-area-opacity: 0.12;
   --chart-line-width: 2;
 }

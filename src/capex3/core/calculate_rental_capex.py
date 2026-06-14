@@ -195,7 +195,17 @@ def calculate_rental_capex(
         "rentToValueRatio": rent_to_value_ratio,
     }
 
-    pro_forma = _compute_pro_forma(normalized, dashboard)
+    repair_reserve_path_trace = compute_repair_reserve_path_trace(
+        normalized,
+        dashboard,
+        sinking_fund["sinkingFundRows"],
+        annual_cash_flow=dashboard["trueMonthlyCashFlow"] * 12,
+    )
+    pro_forma = _compute_pro_forma(
+        normalized,
+        dashboard,
+        repair_reserve_path_trace["years"],
+    )
     year10 = pro_forma[10]
     year10_roi = (
         math.nan
@@ -221,11 +231,6 @@ def calculate_rental_capex(
     dashboard["year10Roi"] = year10_roi
     dashboard["year10AnnualizedRoi"] = year10_annualized_roi
 
-    repair_reserve_path_trace = compute_repair_reserve_path_trace(
-        normalized,
-        dashboard,
-        sinking_fund["sinkingFundRows"],
-    )
     emergency_debt_ledger = evaluate_emergency_debt_ledger(
         repair_reserve_path_trace["years"],
         emergency_loan_apr=normalized["emergencyLoanApr"],
@@ -419,6 +424,7 @@ def _compute_sinking_fund(
 def _compute_pro_forma(
     input_data: Mapping[str, object],
     dashboard: Mapping[str, object],
+    reserve_timeline_years: Sequence[Mapping[str, object]],
 ) -> list[dict[str, object]]:
     annual_cash_flow = dashboard["trueMonthlyCashFlow"] * 12
     annual_capex_reserve = dashboard["totalMonthlyCapexReserve"] * 12
@@ -439,6 +445,7 @@ def _compute_pro_forma(
         )
 
         if year == 0:
+            reserve_row = reserve_timeline_years[0]
             pro_forma.append(
                 {
                     "year": year,
@@ -452,6 +459,10 @@ def _compute_pro_forma(
                     "conservativeIraComparison": dashboard[
                         "totalInitialInvestment"
                     ],
+                    "reserveEndingBalance": reserve_row["reserveEndingBalance"],
+                    "freedReserve": reserve_row["freedReserve"],
+                    "earningsSoFar": 0.0,
+                    "sellNowWealth": 0.0,
                 }
             )
             continue
@@ -489,6 +500,8 @@ def _compute_pro_forma(
         )
         cost_of_sale = future_property_value * input_data["costOfSaleRate"]
         net_proceeds = future_property_value - remaining_loan_balance - cost_of_sale
+        reserve_row = reserve_timeline_years[year]
+        reserve_ending_balance = float(reserve_row["reserveEndingBalance"])
 
         pro_forma.append(
             {
@@ -507,6 +520,10 @@ def _compute_pro_forma(
                 "remainingLoanBalance": remaining_loan_balance,
                 "costOfSale": cost_of_sale,
                 "netProceeds": net_proceeds,
+                "reserveEndingBalance": reserve_ending_balance,
+                "freedReserve": reserve_row["freedReserve"],
+                "earningsSoFar": reserve_row["earningsSoFar"],
+                "sellNowWealth": net_proceeds + reserve_ending_balance,
             }
         )
 

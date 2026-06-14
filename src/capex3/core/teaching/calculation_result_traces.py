@@ -229,21 +229,22 @@ def _ten_year_trace(result: Mapping[str, object]) -> dict[str, object]:
         "graph": {
             "series": [
                 {
-                    "id": "rental",
-                    "label": "Liquidation wealth",
-                    "values": [row["realEstateLiquidationWealth"] for row in rows],
+                    "id": "sellNow",
+                    "label": "Sell-now wealth",
+                    "sourceNote": (
+                        "Net sale proceeds plus your current repair-fund balance, each year."
+                    ),
+                    "values": [row["sellNowWealth"] for row in rows],
                 },
                 {
-                    "id": "cashFlow",
-                    "label": "Cash position (operating + initial)",
+                    "id": "earnings",
+                    "label": "Earnings so far",
                     "sourceNote": (
-                        "Running cash after expenses and reserves; year 10 excludes "
-                        "sale proceeds and reserve addback."
+                        "Cash flow after monthly set-aside; capped-reserve overflow rolls in; "
+                        "0% interest because it is likely spent; set-aside resumes after a "
+                        "repair drains the fund."
                     ),
-                    "values": [
-                        initial_investment + row["accumulatedTrueCashFlow"]
-                        for row in rows
-                    ],
+                    "values": [row["earningsSoFar"] for row in rows],
                 },
                 {
                     "id": "moneyMarket",
@@ -258,10 +259,9 @@ def _ten_year_trace(result: Mapping[str, object]) -> dict[str, object]:
             ]
         },
         "note": (
-            "Liquidation wealth grows through leverage, appreciation, and sale; "
-            "cash position (operating + initial) is operating cash only—year 10 does not include "
-            "sale proceeds or reserve addback. Alternative paths use the money "
-            "market and IRA assumptions you entered."
+            "Sell-now wealth is net sale proceeds plus your repair-fund balance each year "
+            "(real draws, not the smooth workbook reserve). Earnings so far is spendable cash "
+            "after set-aside, plus overflow when the fund is capped — your call how you use it."
         ),
         "initialInvestment": initial_investment,
     }
@@ -497,13 +497,13 @@ def _repair_fund_trace(result: Mapping[str, object]) -> dict[str, object]:
         "infoCopy": _repair_fund_info_copy(pattern),
         "reserveContributionPattern": pattern,
         "workbookCanonical": False,
-        "teachingOnly": True,
+        "appRegressionOnly": True,
         "decisionId": REPAIR_RESERVE_PATH_TRACE_DECISION_ID,
         "canonicalReserveSource": "proForma_and_dashboard",
         "canonicalReserveFields": list(CANONICAL_RESERVE_FIELD_PATHS),
         "sourceNote": (
-            "Reserve timeline for teaching — cap, contributions, and year-10 balance "
-            "also appear in the 10-year forecast and dashboard summary."
+            "Reserve timeline with repair draws is app-owned calculation truth; "
+            "smooth pro forma reserve and L17 liquidation wealth stay workbook-parity."
         ),
         "monthlyContribution": trace.get("monthlyContribution"),
         "targetReserve": trace.get("targetReserve"),

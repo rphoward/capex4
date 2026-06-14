@@ -1082,16 +1082,16 @@ select:focus {
   vector-effect: non-scaling-stroke;
 }
 
-.graph-series.rental,
-.graph-legend i.rental {
-  stroke: var(--chart-series-rental);
-  background: var(--chart-series-rental);
+.graph-series.sell-now,
+.graph-legend i.sell-now {
+  stroke: var(--chart-series-sellnow);
+  background: var(--chart-series-sellnow);
 }
 
-.graph-series.cash-flow,
-.graph-legend i.cash-flow {
-  stroke: var(--chart-series-cashflow);
-  background: var(--chart-series-cashflow);
+.graph-series.earnings,
+.graph-legend i.earnings {
+  stroke: var(--chart-series-earnings);
+  background: var(--chart-series-earnings);
 }
 
 .graph-series.money-market,
@@ -1238,16 +1238,16 @@ select:focus {
   background: currentColor;
 }
 
-.legend-swatch.rental,
-.endpoint.rental,
-.endpoint-label.rental {
-  color: var(--chart-series-rental);
+.legend-swatch.sell-now,
+.endpoint.sell-now,
+.endpoint-label.sell-now {
+  color: var(--chart-series-sellnow);
 }
 
-.legend-swatch.cash-flow,
-.endpoint.cash-flow,
-.endpoint-label.cash-flow {
-  color: var(--chart-series-cashflow);
+.legend-swatch.earnings,
+.endpoint.earnings,
+.endpoint-label.earnings {
+  color: var(--chart-series-earnings);
 }
 
 .legend-swatch.money-market,
@@ -1303,6 +1303,25 @@ select:focus {
   vector-effect: non-scaling-stroke;
 }
 
+.chart-zero-line {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-zero-label {
+  fill: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-axis);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-loss-band {
+  fill: rgba(180, 35, 24, 0.08);
+}
+
 .chart-y-label,
 .chart-x-label {
   fill: var(--stone);
@@ -1312,8 +1331,8 @@ select:focus {
   letter-spacing: 0.02em;
 }
 
-.rental-area {
-  fill: url(#rentalGrad);
+.sell-now-area {
+  fill: url(#sellNowGrad);
 }
 
 .ten-year-series {
@@ -1322,13 +1341,18 @@ select:focus {
   vector-effect: non-scaling-stroke;
 }
 
-.ten-year-series.rental {
-  stroke: var(--chart-series-rental);
+.ten-year-series.sell-now {
+  stroke: var(--chart-series-sellnow);
   stroke-width: 2.5;
 }
 
-.ten-year-series.cash-flow {
-  stroke: var(--chart-series-cashflow);
+.ten-year-series.sell-now-underwater {
+  stroke: var(--chart-series-loss);
+  stroke-width: 2.5;
+}
+
+.ten-year-series.earnings {
+  stroke: var(--chart-series-earnings);
   stroke-dasharray: 3 3;
   stroke-width: 1.8;
 }
@@ -1429,22 +1453,22 @@ select:focus {
 }
 
 .repair-balance-series {
-  stroke: var(--chart-series-rental);
+  stroke: var(--chart-series-sellnow);
   stroke-width: 2.5;
 }
 
 .repair-surprise-series {
-  stroke: var(--chart-series-cashflow);
+  stroke: var(--chart-series-loss);
   stroke-dasharray: 4 3;
   stroke-width: 1.8;
 }
 
 .legend-swatch.reserve-balance {
-  background: var(--chart-series-rental);
+  background: var(--chart-series-sellnow);
 }
 
 .legend-swatch.surprise-cost {
-  background: var(--chart-series-cashflow);
+  background: var(--chart-series-loss);
 }
 
 .repair-event-marker line {

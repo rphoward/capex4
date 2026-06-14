@@ -281,15 +281,15 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("--positive:", combined_css)
         self.assertIn("--negative:", combined_css)
         self.assertIn("--chart-grid:", combined_css)
-        self.assertIn("--chart-series-rental:", combined_css)
+        self.assertIn("--chart-series-sellnow:", combined_css)
 
         self.assertEqual(
-            _css_hex_token(tokens, "--chart-series-rental"),
-            htmx_charts.CHART_RENTAL.lower(),
+            _css_hex_token(tokens, "--chart-series-sellnow"),
+            htmx_charts.CHART_SELL_NOW.lower(),
         )
         self.assertEqual(
-            _css_hex_token(tokens, "--chart-series-cashflow"),
-            htmx_charts.CHART_CASHFLOW.lower(),
+            _css_hex_token(tokens, "--chart-series-earnings"),
+            htmx_charts.CHART_EARNINGS.lower(),
         )
         self.assertEqual(
             _css_hex_token(tokens, "--chart-series-mm"),
@@ -402,20 +402,20 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn('class="chart-side-legend"', response.body)
         self.assertIn('class="svg-wrap chart-canvas">', response.body)
         self.assertIn("<svg", response.body)
-        self.assertIn('class="ten-year-series rental"', response.body)
-        self.assertIn('class="ten-year-series cash-flow"', response.body)
+        self.assertIn('class="ten-year-series sell-now"', response.body)
+        self.assertIn('class="ten-year-series earnings"', response.body)
         self.assertIn('class="ten-year-series money-market"', response.body)
         self.assertIn('class="ten-year-series ira"', response.body)
-        self.assertIn('class="rental-area"', response.body)
+        self.assertIn('class="sell-now-area"', response.body)
         self.assertIn('class="endpoint-label', response.body)
         self.assertNotIn('class="highcharts-host"', response.body)
         self.assertNotIn("data-highcharts-config=", response.body)
-        self.assertIn("Liquidation wealth", response.body)
-        self.assertIn("Cash position (operating + initial)", response.body)
+        self.assertIn("Sell-now wealth", response.body)
+        self.assertIn("Earnings so far", response.body)
         self.assertIn("Money market", response.body)
         self.assertIn(">IRA</span>", response.body)
         self.assertIn("four paths compared", response.body)
-        self.assertIn("Alternative paths use the money", response.body)
+        self.assertIn("repair-fund balance each year", response.body)
         self.assertIn(".chart-wrap", stylesheet)
         self.assertIn(".chart-side-legend", stylesheet)
         self.assertIn(".svg-wrap svg", stylesheet)
@@ -570,7 +570,7 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("Liquidation wealth", summary)
         self.assertIn("Excludes reserve returned at sale", summary)
         self.assertIn("Includes accumulated reserve returned at sale", summary)
-        self.assertIn("Liquidation wealth</th>", body)
+        self.assertIn("Liquidation wealth (L17)</th>", body)
         self.assertIn("Accumulated cash</th>", body)
         self.assertIn("Annual reserve contribution</th>", body)
         self.assertIn("Accumulated reserve</th>", body)
@@ -579,7 +579,6 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("Cost of sale</th>", body)
         self.assertIn("Net proceeds</th>", body)
         self.assertIn("Cash position (operating + initial)</th>", body)
-        self.assertIn("cash position (operating + initial)", body.lower())
         self.assertNotIn("<th>Rental path</th>", body)
 
     def test_slice3_cash_flow_receipt_hides_engine_fields_in_reward_shows_in_drilldown(
@@ -995,7 +994,7 @@ class HtmxChartsSvgGeometryTest(unittest.TestCase):
         self.assertLess(label_x, x)
 
     def test_hex_alpha_derives_gradient_from_chart_rental(self) -> None:
-        rgba = htmx_charts._hex_alpha(htmx_charts.CHART_RENTAL, 0.12)
+        rgba = htmx_charts._hex_alpha(htmx_charts.CHART_SELL_NOW, 0.12)
         self.assertEqual(rgba, "rgba(26, 122, 76, 0.12)")
 
     def test_line_series_from_graph_skips_non_numeric_values(self) -> None:
@@ -1046,6 +1045,35 @@ class HtmxChartsSvgGeometryTest(unittest.TestCase):
         markup = htmx_charts._ten_year_endpoints(series, 2, 0.0, 300.0, htmx_charts.TEN_YEAR_SVG_HEIGHT)
         self.assertNotIn("<script>", markup)
         self.assertIn("&lt;script&gt;", markup)
+
+    def test_underwater_line_paths_clip_at_zero_crossings(self) -> None:
+        values = [50_000.0, -25_000.0, 10_000.0, -5_000.0, 20_000.0]
+        paths = htmx_charts._underwater_line_paths(
+            values,
+            len(values),
+            -30_000.0,
+            60_000.0,
+            htmx_charts.TEN_YEAR_SVG_HEIGHT,
+        )
+        self.assertEqual(2, len(paths))
+
+    def test_ten_year_svg_renders_zero_line_and_loss_band_when_negative(self) -> None:
+        series = [
+            {
+                "className": "sell-now",
+                "label": "Sell-now wealth",
+                "values": [0.0, 50_000.0, -10_000.0, 30_000.0],
+            },
+            {
+                "className": "money-market",
+                "label": "Money market",
+                "values": [0.0, 40_000.0, 45_000.0, 50_000.0],
+            },
+        ]
+        markup = htmx_charts._ten_year_svg(series, 4, -20_000.0, 60_000.0)
+        self.assertIn('class="chart-zero-line"', markup)
+        self.assertIn('class="chart-loss-band"', markup)
+        self.assertIn('class="ten-year-series sell-now-underwater"', markup)
 
 
 def _field_grid_markup(body: str) -> str:

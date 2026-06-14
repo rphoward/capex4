@@ -16,7 +16,7 @@ Calculation domain: deal inputs, validation, financial primitives, workbook assu
 | Deal input normalize/validate | `deal_inputs.py` | `RentalCapexDealInputRequest` |
 | Workbook shapes (no I/O) | `workbook_assumptions.py` | `compose_workbook_model_spec`, `model_spec_record` |
 | Emergency debt / survival | `emergency_debt_ledger.py` | Shock-adjusted cash flow, overlap |
-| Reserve path trace | `repair_reserve_path_trace.py` | Teaching-adjacent numeric trace |
+| Reserve path trace | `repair_reserve_path_trace.py` | Domain-center reserve timeline (draws, earnings, sell-now wealth) |
 | Solver question catalog | `solver_question_catalog.py` | Selected questions contract |
 | Public re-exports | `__init__.py` | Canonical import surface |
 
