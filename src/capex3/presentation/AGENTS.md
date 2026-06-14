@@ -15,7 +15,7 @@ presentation/
 ├── rental_capex_http_api.py    # handle_get, handle_post, handler class
 ├── htmx_renderer.py            # re-export barrel → htmx_page.py
 ├── htmx_page.py, htmx_inputs.py, htmx_evidence*.py, htmx_charts.py, htmx_offer_ready.py
-├── htmx_state.py, htmx_format.py, htmx_shell.py
+├── htmx_state.py, htmx_format.py, htmx_shell.py, htmx_evidence_summary.py
 └── browser_assets/             # index.html, CSS, vendor/htmx.min.js
 ```
 

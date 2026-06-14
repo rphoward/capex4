@@ -15,7 +15,7 @@ from .selected_scenario import (
     SUPPORTED_SOLVER_RECEIPT_TRACE_IDS,
     SUPPORTED_SOLVER_RECEIPT_VARIABLE,
 )
-from .solver_question_catalog import (
+from capex3.core.solver_question_catalog import (
     SelectedSolverQuestion,
     list_selected_solver_questions,
 )

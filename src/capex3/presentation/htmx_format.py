@@ -4,6 +4,7 @@ import json
 from html import escape
 from typing import Mapping, Sequence
 
+
 def _format(value: object, value_kind: object = None) -> str:
     if value is None:
         return "-"
@@ -32,6 +33,18 @@ def _format_abs_money(value: object) -> str:
     if not isinstance(value, (int, float)):
         return "-"
     return f"${abs(value):,.0f}"
+
+
+def _format_chart_compact_money(value: object) -> str:
+    if not isinstance(value, (int, float)):
+        return "-"
+    prefix = "-$" if value < 0 else "$"
+    magnitude = abs(value)
+    if magnitude >= 1_000_000:
+        return f"{prefix}{magnitude / 1_000_000:.1f}M"
+    if magnitude >= 1_000:
+        return f"{prefix}{magnitude / 1000:.0f}k"
+    return f"{prefix}{magnitude:.0f}"
 
 
 def _display_value(value: object) -> str:
@@ -85,10 +98,6 @@ def _parse_number(raw: object) -> float | None:
         return float(str(raw))
     except ValueError:
         return None
-
-
-def _parse_optional_number(raw: object) -> float | None:
-    return _parse_number(raw)
 
 
 def _string_mapping(form: Mapping[str, object] | None) -> dict[str, str]:

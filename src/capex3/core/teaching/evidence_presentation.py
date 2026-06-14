@@ -73,3 +73,16 @@ def drilldown_title(trace: Mapping[str, object], fallback: str = "See calculatio
         if title:
             return str(title)
     return fallback
+
+
+def summary_card(
+    label: str,
+    value: object,
+    kind: str,
+    *,
+    note: str = "",
+) -> dict[str, object]:
+    card: dict[str, object] = {"label": label, "value": value, "kind": kind}
+    if note:
+        card["note"] = note
+    return card

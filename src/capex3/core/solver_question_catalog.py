@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Mapping, Sequence
 
 
 @dataclass(frozen=True)
@@ -112,3 +112,118 @@ def selected_solver_question_catalog_to_contract() -> list[dict[str, object]]:
 
 
 SOLVER_QUESTION_CATALOG = SELECTED_SOLVER_QUESTIONS
+
+# App-side threshold/manual solver previews — not fixture-parity bisection precision.
+MONEY_VALUE_KINDS = frozenset({"money", "moneyCents"})
+THRESHOLD_SOLVER_MONEY_TOLERANCE = 1.0
+THRESHOLD_SOLVER_RATIO_TOLERANCE = 0.01
+
+SOLVER_METRIC_VALUE_KINDS: Mapping[str, str] = {
+    "monthlyCashFlow": "moneyCents",
+    "cashOnCashReturn": "percent",
+    "year10Roi": "percent",
+    "year10AnnualizedRoi": "percent",
+    "firstEmergencyGap": "money",
+}
+
+SOLVER_QUESTION_DISPLAY: Mapping[str, dict[str, str]] = {
+    "breakEvenRent": {
+        "title": "Break-even rent",
+        "prompt": "What rent would make monthly cash flow hit zero?",
+        "gapBaseline": "current rent",
+    },
+    "maxPurchasePriceCashFlowZero": {
+        "title": "Max purchase price",
+        "prompt": (
+            "What purchase price would make monthly cash flow hit zero with the "
+            "default down payment percent?"
+        ),
+        "gapBaseline": "current price",
+    },
+    "requiredDownPaymentCashFlowZero": {
+        "title": "Needed down payment",
+        "prompt": (
+            "What down payment would make monthly cash flow hit zero at the current "
+            "purchase price?"
+        ),
+        "gapBaseline": "current down payment",
+    },
+    "maxRehabBudgetCashOnCash8Pct": {
+        "title": "Rehab room",
+        "prompt": (
+            "What rehab budget still leaves the deal at an 8% cash-on-cash return?"
+        ),
+        "gapBaseline": "current rehab estimate",
+    },
+    "reserveIncreaseFirstShortfall": {
+        "title": "Reserve bump for first shortfall",
+        "prompt": (
+            "What monthly reserve increase clears the first unfunded emergency repair?"
+        ),
+        "gapBaseline": "current reserve",
+    },
+}
+
+
+def threshold_solver_tolerance(
+    *,
+    metric: str | None = None,
+    value_kind: str | None = None,
+) -> float:
+    resolved_kind = value_kind or SOLVER_METRIC_VALUE_KINDS.get(str(metric or ""), "")
+    if resolved_kind in MONEY_VALUE_KINDS:
+        return THRESHOLD_SOLVER_MONEY_TOLERANCE
+    return THRESHOLD_SOLVER_RATIO_TOLERANCE
+
+
+def threshold_questions_to_contract() -> list[dict[str, object]]:
+    questions: list[dict[str, object]] = []
+    for question in list_selected_solver_questions():
+        display = SOLVER_QUESTION_DISPLAY[question.id]
+        merged: dict[str, object] = {
+            "id": question.id,
+            "title": display["title"],
+            "prompt": display["prompt"],
+            "gapBaseline": display.get("gapBaseline", "current input"),
+            "solver": question.solver.to_contract_dict(),
+            "solvedValueKind": question.solved_value_kind,
+            "solvedMetricKind": question.solved_metric_kind,
+            "workbench": question.workbench,
+        }
+        if question.offer_ready:
+            merged["offerReady"] = True
+        questions.append(merged)
+    return questions
+
+
+_SOLVER_REQUEST_KEYS = frozenset(
+    {
+        "baseInput",
+        "variable",
+        "metric",
+        "targetValue",
+        "lowerBound",
+        "upperBound",
+        "tolerance",
+        "maxIterations",
+    }
+)
+
+
+def threshold_solver_request_dict(
+    question: Mapping[str, object],
+    *,
+    base_input: Mapping[str, object],
+) -> dict[str, object]:
+    solver_config = dict(question.get("solver", {}))
+    return {
+        key: value
+        for key, value in {
+            **solver_config,
+            "baseInput": dict(base_input),
+            "tolerance": threshold_solver_tolerance(
+                metric=str(solver_config.get("metric") or ""),
+            ),
+        }.items()
+        if key in _SOLVER_REQUEST_KEYS
+    }

@@ -14,6 +14,7 @@ from capex3.presentation.htmx_state import UiState, _build_state, _hidden_state_
 HTMX_VENDOR_ASSET_PATH = "/assets/vendor/htmx.min.js"
 FONTS_STYLESHEET_PATH = "/assets/fonts.css"
 TOKENS_STYLESHEET_PATH = "/assets/tokens.css"
+STYLESHEET_PATH = "/assets/styles.css"
 
 
 def _font_head_markup() -> str:
@@ -44,10 +45,10 @@ def _document(app_fragment: str) -> str:
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Rental CapEx Model</title>
+    <title>Rental Deal Analyzer</title>
 {_font_head_markup()}
     <link rel="stylesheet" href="{TOKENS_STYLESHEET_PATH}">
-    <link rel="stylesheet" href="/assets/styles.css">
+    <link rel="stylesheet" href="{STYLESHEET_PATH}">
     <script src="{HTMX_VENDOR_ASSET_PATH}" defer></script>
   </head>
   <body>

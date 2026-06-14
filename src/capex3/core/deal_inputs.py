@@ -1,9 +1,9 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
-import math
 from typing import Mapping
 
 from .errors import RentalCapexError, VALIDATION_ERROR
+from .financial import _assert_finite_number as _assert_finite
 
 
 NUMERIC_INPUT_FIELDS = (
@@ -370,19 +370,6 @@ def validate_input(input_data: Mapping[str, object]) -> None:
                 "field": "monthlyReserveIncrease",
                 "value": input_data["monthlyReserveIncrease"],
             },
-        )
-
-
-def _assert_finite(value: object, field: str) -> None:
-    if (
-        isinstance(value, bool)
-        or not isinstance(value, (int, float))
-        or not math.isfinite(value)
-    ):
-        raise RentalCapexError(
-            VALIDATION_ERROR,
-            f"{field} must be a finite number.",
-            {"field": field, "value": value},
         )
 
 

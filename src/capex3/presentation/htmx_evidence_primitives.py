@@ -2,15 +2,8 @@ from __future__ import annotations
 
 from typing import Mapping
 
-from capex3.core.teaching.evidence_presentation import (
-    primary_reward_key,
-    primary_reward_label_for_trace,
-)
+from capex3.core.teaching.evidence_presentation import primary_reward_label_for_trace
 from capex3.presentation.htmx_format import _attr, _html
-from capex3.presentation.htmx_state import (
-    UiState,
-    _metric_strip_navigation_by_field,
-)
 
 
 def _evidence_drilldown(title: str, inner_html: str) -> str:
@@ -64,28 +57,11 @@ def _simple_receipt_row(label: object, value_html: str, *, row_class: str = "") 
 </div>"""
 
 
-def _evidence_focus_class(state: UiState, layer_id: str) -> str:
-    if state.active_evidence_layer != layer_id or not state.active_metric_field:
-        return ""
-    nav = _metric_strip_navigation_by_field(state.workbench).get(
-        state.active_metric_field,
-        {},
-    )
-    expected_focus = primary_reward_key(layer_id)
-    if expected_focus and nav.get("focus") == expected_focus:
-        return " evidence-focus"
-    return ""
-
-
 def _primary_reward_label_html(trace: Mapping[str, object], layer_id: str) -> str:
     label = primary_reward_label_for_trace(trace, layer_id)
     if not label:
         return ""
     return f'<p class="evidence-reward-label">{_html(label)}</p>'
-
-
-def _teaching_reward_disclaimer(trace: Mapping[str, object]) -> str:
-    return ""
 
 
 def _evidence_layer_shell(
@@ -103,9 +79,6 @@ def _evidence_layer_shell(
     label = _primary_reward_label_html(trace, layer_id) if include_reward_label else ""
     if label:
         preamble.append(label)
-    disclaimer = _teaching_reward_disclaimer(trace)
-    if disclaimer:
-        preamble.append(disclaimer)
     preamble_block = "\n  ".join(preamble)
     preamble_prefix = f"  {preamble_block}\n  " if preamble_block else ""
     return f"""

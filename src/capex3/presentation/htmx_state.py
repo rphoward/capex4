@@ -9,6 +9,9 @@ from capex3.presentation.http_contracts import (
     defaults_payload,
     solver_preview_payload,
     workbench_payload,
+    _input_fields_by_id,
+    _solver_metrics,
+    _solver_variables,
 )
 from capex3.presentation.htmx_format import (
     _bool_text,
@@ -18,7 +21,6 @@ from capex3.presentation.htmx_format import (
     _hidden,
     _json_for_hidden,
     _parse_number,
-    _parse_optional_number,
 )
 
 SOURCE_METRIC_STRIP_FIELDS = (
@@ -107,7 +109,12 @@ def _build_state(form: Mapping[str, str], action: str) -> UiState:
         active_metric_field = ""
 
     if action == "metric":
-        active_metric_field = form.get("activeMetricField", "")
+        toggle_field = form.get("metricStripToggle", "")
+        persisted_field = form.get("activeMetricField", "")
+        if toggle_field and toggle_field == persisted_field:
+            active_metric_field = ""
+        else:
+            active_metric_field = toggle_field
         evidence_follows_step = False
         if active_metric_field:
             nav = _metric_strip_navigation_by_field(workbench).get(active_metric_field)
@@ -140,7 +147,13 @@ def _build_state(form: Mapping[str, str], action: str) -> UiState:
     status_text = "Ready"
     status_kind = "ok"
     try:
-        result = calculate_payload(inputs)["result"]
+        result = calculate_payload(
+            inputs,
+            build_what_works_solvers=(
+                active_evidence_layer == "whatWorks"
+                or action == "solve-threshold"
+            ),
+        )["result"]
     except Exception as error:
         result = None
         error_message = str(error)
@@ -359,14 +372,6 @@ def _evidence_layers(workbench: Mapping[str, object]) -> list[dict[str, object]]
     return layers
 
 
-def _input_fields_by_id(workbench: Mapping[str, object]) -> dict[str, Mapping[str, object]]:
-    return {
-        str(field.get("field")): field
-        for field in workbench.get("inputFields", [])
-        if field.get("field")
-    }
-
-
 def _metric_by_field(workbench: Mapping[str, object]) -> dict[str, Mapping[str, object]]:
     return {
         str(metric.get("field")): metric
@@ -414,14 +419,6 @@ def _metric_strip_navigation_by_field(
 def _evidence_layer_for_step(workbench: Mapping[str, object], step_id: str) -> str:
     mapping = workbench.get("stageEvidenceMapping", {})
     return str(mapping.get(step_id) or "tenYear")
-
-
-def _solver_variables(workbench: Mapping[str, object]) -> list[Mapping[str, object]]:
-    return [variable for variable in workbench.get("solverVariables", []) if variable.get("id")]
-
-
-def _solver_metrics(workbench: Mapping[str, object]) -> list[Mapping[str, object]]:
-    return [metric for metric in workbench.get("solverMetrics", []) if metric.get("id")]
 
 
 def _first_manual_solver_variable_id(variables: Sequence[Mapping[str, object]]) -> str:
@@ -484,8 +481,8 @@ def _apply_component_override(
     component = form.get("overrideComponent", "")
     if not component:
         return
-    quantity = _parse_optional_number(form.get("overrideQuantity", ""))
-    age = _parse_optional_number(form.get("overrideAge", ""))
+    quantity = _parse_number(form.get("overrideQuantity", ""))
+    age = _parse_number(form.get("overrideAge", ""))
     if quantity is None and age is None:
         overrides.pop(component, None)
         return

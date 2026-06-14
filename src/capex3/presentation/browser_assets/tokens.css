@@ -10,17 +10,19 @@
 :root {
   /* Runway — canvas & ink */
   --canvas: #f8f7f5;
-  --paper: #f8f7f5;
+  --paper: var(--canvas);
   --panel: #ffffff;
+  --panel-glass: rgba(255, 255, 255, 0.94);
   --ink: #261b07;
   --stone: #61594a;
   --muted: #616161;
   --line: #e3dfd5;
-  --border: #e3dfd5;
+  --border: var(--line);
   --hairline: #dbdad7;
-  --soft-line: #dbdad7;
+  --soft-line: var(--hairline);
   --surface-tint: #f3f2ef;
   --results-canvas: #f0f3f7;
+  --results-gradient-top: #f5f7fa;
   --table-head: #f3f2ef;
   --input-disabled: #f3f2ef;
   --receipt-paper: #fffdf7;
@@ -31,18 +33,32 @@
   --amber: #f9a600;
   --amber-hover: #e89b01;
   --amber-outline: #e89b01;
+  --amber-soft: rgba(249, 166, 0, 0.1);
+  --amber-line: rgba(249, 166, 0, 0.42);
 
   /* Semantic data */
   --green: #1a7a4c;
   --green-dark: #145a38;
   --copper: #b85c28;
   --red: #b8423a;
-  --blue: #2563a8;
+  --blue: #2b6cb0;
   --palm: #5a6b45;
   --slate: #6b6560;
   --link: #0027b3;
   --positive: #486635;
   --negative: #a43d12;
+
+  /* Status palettes */
+  --solver-note-border: #d4dce8;
+  --solver-note-bg: #f6f8fb;
+  --solver-note-text: #2f3f52;
+  --solver-note-heading: #1f4f7a;
+  --offer-ready-warning-border: #e8d4c0;
+  --offer-ready-warning-bg: #fff7ef;
+  --offer-ready-warning-text: #4a3428;
+  --overlap-warning-border: #e0c4be;
+  --overlap-warning-bg: #fff3f1;
+  --overlap-warning-text: #5c2f2a;
 
   /* Radius — Runway shell vs Midday data */
   --radius-shell: 12px;
@@ -56,8 +72,8 @@
   /* Elevation — Runway card shadow */
   --shadow: rgba(38, 27, 7, 0.06) 0 4px 8px;
   --shadow-sm: rgba(38, 27, 7, 0.04) 0 2px 4px;
+  --shadow-md: rgba(38, 27, 7, 0.08) 0 8px 20px;
   --shadow-tooltip: rgba(38, 27, 7, 0.12) 0 8px 18px;
-  --depth-shadow: none;
 
   /* Spacing — Runway compact + Midday section rhythm */
   --space-1: 4px;
@@ -76,6 +92,12 @@
 
   /* Focus */
   --focus-ring: rgba(249, 166, 0, 0.22);
+
+  /* Scrollbars — design-matched, not default browser chrome */
+  --scrollbar-size: 10px;
+  --scrollbar-thumb: #cdc9c0;
+  --scrollbar-thumb-hover: #b0aa9d;
+  --scrollbar-track: transparent;
 
   /* Typography — Refero substitutes in fonts.css */
   --font-ui: "Source Sans 3", system-ui, sans-serif;

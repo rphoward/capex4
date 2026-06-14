@@ -14,11 +14,16 @@ from capex3.presentation.htmx_format import (
     _html,
     _hx_post,
 )
-from capex3.presentation.htmx_evidence import _summary_cards_html, _trace_summary_cards
-from capex3.presentation.htmx_trace import _result_trace, _trace_collection
+from capex3.presentation.htmx_evidence_summary import (
+    _summary_cards_html,
+    _trace_summary_cards,
+)
+from capex3.presentation.htmx_evidence_summary import (
+    _result_trace,
+    _trace_collection,
+)
 from capex3.presentation.htmx_evidence_primitives import (
     _evidence_drilldown,
-    _evidence_focus_class,
     _evidence_layer_shell,
     _receipt_empty_row,
     _receipt_waterfall,
@@ -224,9 +229,8 @@ def _what_works_section(state: UiState) -> str:
     hidden = _hidden_attr_for_layer(state, "whatWorks")
     trace = _result_trace(state, "whatWorks")
     questions = _trace_collection(trace, ("questions", "thresholdQuestions", "solverQuestions"))
-    focus_class = _evidence_focus_class(state, "whatWorks")
     threshold_cards = "".join(
-        _threshold_card(state, question, show_id=False) for question in questions
+        _threshold_card(state, question) for question in questions
     )
     if not threshold_cards:
         threshold_cards = '<div class="error-text">Evidence trace unavailable.</div>'
@@ -237,7 +241,7 @@ def _what_works_section(state: UiState) -> str:
         f'<div class="slv-note">{_html(str(solver_note))}</div>',
     )
     body = f"""
-  <div class="slv-grid evidence-reward{focus_class}" id="threshold-grid">{threshold_cards}</div>
+  <div class="slv-grid evidence-reward" id="threshold-grid">{threshold_cards}</div>
   {drilldown}"""
     return _evidence_layer_shell(
         "whatWorks",
@@ -251,8 +255,6 @@ def _what_works_section(state: UiState) -> str:
 def _threshold_card(
     state: UiState,
     question: Mapping[str, object],
-    *,
-    show_id: bool = True,
 ) -> str:
     question_id = str(question.get("id") or "")
     label = question.get("label") or question.get("title") or question.get("question") or question_id
@@ -272,12 +274,8 @@ def _threshold_card(
     preview = ""
     if state.solver_preview and state.solver_preview.get("source") == f"threshold:{question_id}":
         preview = _solver_preview_html(state.solver_preview)
-    question_id_html = (
-        f'<p class="threshold-id">{_html(question_id)}</p>' if show_id and question_id else ""
-    )
     return f"""
 <div class="slv-card threshold-card {state_class}">
-  {question_id_html}
   <p class="slv-q">{_html(detail or label)}</p>
   <p class="slv-v">{_html(solved_text)}</p>
   <p class="slv-gap">{_html(gap_text)}</p>
@@ -293,13 +291,7 @@ def _threshold_gap_text(question: Mapping[str, object]) -> str:
     gap_value = question.get("gapValue")
     if not isinstance(gap_value, (int, float)):
         return "Current input already matches this threshold."
-    baseline_by_question = {
-        "breakEvenRent": "current rent",
-        "maxPurchasePriceCashFlowZero": "current price",
-        "requiredDownPaymentCashFlowZero": "current down payment",
-        "maxRehabBudgetCashOnCash8Pct": "current rehab estimate",
-    }
-    baseline = baseline_by_question.get(str(question.get("id")), "current input")
+    baseline = str(question.get("gapBaseline") or "current input")
     direction = "above" if gap_value > 0 else "below"
     return f"{_format_abs_money(gap_value)} {direction} {baseline}"
 
@@ -379,7 +371,7 @@ def _reserve_solver_preview_html(
   {_hidden("solverApplyField", preview.get("applyField", ""))}
   {_hidden("solverSolvedValue", _control_value(solved_value))}
   <div class="solver-preview-actions">
-    <button type="button" data-solver-apply {_hx_post("/ui/apply-solver")}>Apply monthly reserve increase</button>
+    <button type="button" {_hx_post("/ui/apply-solver")}>Apply monthly reserve increase</button>
     <small>{_html(copy["reserveSolverApplyNote"])}</small>
   </div>
   {footnote}
@@ -420,19 +412,26 @@ def _solver_preview_html(preview: Mapping[str, object]) -> str:
   {_hidden("solverApplyField", preview.get("applyField", ""))}
   {_hidden("solverSolvedValue", _control_value(solved_value))}
   <div class="solver-preview-actions">
-    <button type="button" data-solver-apply {_hx_post("/ui/apply-solver")}>Apply {_html(preview.get("variableLabel", "value"))}</button>
+    <button type="button" {_hx_post("/ui/apply-solver")}>Apply {_html(preview.get("variableLabel", "value"))}</button>
     <small>Apply this one solved input, then recalculate.</small>
   </div>
   {footnote}
 </div>"""
 
 
-def _solver_disclaimer_html(disclaimer: Mapping[str, object]) -> str:
+def _solver_disclaimer_html(
+    disclaimer: Mapping[str, object],
+    *,
+    workbench: bool = False,
+) -> str:
     source_note = disclaimer.get("sourceNote")
     if not source_note:
         return ""
+    classes = "layer-copy disclaimer solver-note"
+    if workbench:
+        classes = f"{classes} solver-workbench-disclaimer"
     return f"""
-  <p class="layer-copy disclaimer solver-note">
+  <p class="{classes}">
     <small>{_html(str(source_note))}</small>
   </p>"""
 
@@ -441,11 +440,4 @@ def _solver_workbench_disclaimer_html(workbench: Mapping[str, object]) -> str:
     disclaimer = workbench.get("solverDisclaimer")
     if not isinstance(disclaimer, Mapping):
         disclaimer = SOLVER_DISCLAIMER
-    block = _solver_disclaimer_html(disclaimer)
-    if not block:
-        return ""
-    return block.replace(
-        'class="layer-copy disclaimer solver-note"',
-        'class="layer-copy disclaimer solver-note solver-workbench-disclaimer"',
-        1,
-    )
+    return _solver_disclaimer_html(disclaimer, workbench=True)

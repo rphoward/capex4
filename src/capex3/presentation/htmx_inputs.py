@@ -25,9 +25,11 @@ from capex3.presentation.htmx_shell import (
 from capex3.presentation.htmx_state import (
     UiState,
     _active_step,
-    _input_fields_by_id,
     _journey_steps,
     _next_step_id,
+)
+from capex3.presentation.http_contracts import (
+    _input_fields_by_id,
     _solver_metrics,
     _solver_variables,
 )
@@ -38,7 +40,6 @@ def _input_panel(state: UiState) -> str:
     component_hidden = "" if state.active_step == "walkthrough" else " hidden"
     solver_hidden = "" if state.active_step == "decision" else " hidden"
     journey_controls = _journey_local_controls(state)
-    decision_packet = _decision_packet_placeholder() if state.active_step == "decision" else ""
     offer_ready = _offer_ready_panel(state) if state.active_step == "walkthrough" else ""
 
     calc_card_body = f"""
@@ -50,7 +51,6 @@ def _input_panel(state: UiState) -> str:
         <p id="active-step-description">{_html(step.get("description", ""))}</p>
       </div>
       <div class="field-grid" id="field-grid">{_input_fields(state, step)}</div>
-      {decision_packet}
       {journey_controls}
     </div>"""
 
@@ -111,10 +111,7 @@ def _input_panel(state: UiState) -> str:
         "Walkthrough checks",
         walkthrough_body,
         panel_id="walkthrough-ledger",
-    ).replace(
-        'id="walkthrough-ledger">',
-        f'id="walkthrough-ledger"{walkthrough_ledger_hidden}>',
-        1,
+        hidden=walkthrough_ledger_hidden,
     )
     ledger_panels += _ledger_panel(
         "What would work?",
@@ -124,10 +121,7 @@ def _input_panel(state: UiState) -> str:
     </div>
 {solver_body}""",
         panel_id="solver-ledger",
-    ).replace(
-        'id="solver-ledger">',
-        f'id="solver-ledger"{solver_ledger_hidden}>',
-        1,
+        hidden=solver_ledger_hidden,
     )
     if state.active_step == "walkthrough":
         ledger_panels += offer_ready
@@ -182,7 +176,7 @@ def _journey_local_controls(state: UiState) -> str:
         return ""
     next_step_id = _next_step_id(state.workbench, state.active_step)
     next_button = (
-        f"""<button id="next-step-button" class="btn-ghost" type="button" name="activeStep" value="{_attr(next_step_id)}" {_hx_post("/ui/step")}>Next step</button>"""
+        f"""<button id="next-step-button" type="button" name="activeStep" value="{_attr(next_step_id)}" {_hx_post("/ui/step")}>Next step</button>"""
         if next_step_id
         else ""
     )
@@ -191,10 +185,6 @@ def _journey_local_controls(state: UiState) -> str:
   <button id="recalculate-button" type="button" {_hx_post("/ui/calculate")}>Recalculate</button>
   {next_button}
 </div>"""
-
-
-def _decision_packet_placeholder() -> str:
-    return ""
 
 
 def _field_control(

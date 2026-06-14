@@ -17,7 +17,7 @@ Calculation domain: deal inputs, validation, financial primitives, workbook assu
 | Workbook shapes (no I/O) | `workbook_assumptions.py` | `compose_workbook_model_spec`, `model_spec_record` |
 | Emergency debt / survival | `emergency_debt_ledger.py` | Shock-adjusted cash flow, overlap |
 | Reserve path trace | `repair_reserve_path_trace.py` | Domain-center reserve timeline (draws, earnings, sell-now wealth) |
-| Solver question catalog | `solver_question_catalog.py` | Selected questions contract |
+| Solver question catalog + display | `solver_question_catalog.py` | Targets, copy, threshold contract |
 | Public re-exports | `__init__.py` | Canonical import surface |
 
 ## core/teaching/
@@ -29,9 +29,7 @@ Pedagogy subdomain — evidence framing, journey metadata, solver display labels
 | Result traces for UI | `teaching/calculation_result_traces.py` |
 | Offer-ready copy | `teaching/offer_ready_evidence.py` |
 | Cash-flow stability evidence | `teaching/cash_flow_stability_evidence.py`, `cash_flow_stability_trace.py` |
-| Solver display / thresholds | `teaching/solver_question_display.py` |
 | Workbench metadata constants | `teaching/workbench_metadata.py` |
 | Evidence presentation helpers | `teaching/evidence_presentation.py` |
-| Teaching catalog re-export | `teaching/solver_question_catalog.py` → core catalog |
 
 `teaching/` imports `capex3.core.*`; modules outside `teaching/` do not import `core.teaching`.
