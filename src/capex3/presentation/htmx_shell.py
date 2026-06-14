@@ -61,10 +61,16 @@ def _step_rail(label: str, buttons_html: str) -> str:
     </aside>"""
 
 
-def _ledger_panel(title: str, body_html: str, *, panel_id: str = "") -> str:
+def _ledger_panel(
+    title: str,
+    body_html: str,
+    *,
+    panel_id: str = "",
+    hidden: str = "",
+) -> str:
     id_attr = f' id="{_attr(panel_id)}"' if panel_id else ""
     return f"""
-  <section class="ledger-panel"{id_attr}>
+  <section class="ledger-panel"{id_attr}{hidden}>
 {_section_head(title)}
 {body_html}
   </section>"""

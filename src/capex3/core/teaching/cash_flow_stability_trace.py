@@ -15,6 +15,7 @@ from .cash_flow_stability_evidence import (
     cash_flow_stability_evidence_to_contract,
     peak_emergency_payment_from_result,
 )
+from .evidence_presentation import summary_card
 
 
 def cash_flow_stability_trace(result: Mapping[str, object]) -> dict[str, object]:
@@ -104,13 +105,13 @@ def _summary_cards(
     overlap_years: Sequence[object],
 ) -> list[dict[str, object]]:
     summary: list[dict[str, object]] = [
-        _card(
+        summary_card(
             "Planned monthly reserve",
             planned_monthly,
             "moneyCents",
             note="Snapshot monthly rate before repairs are pre-funded.",
         ),
-        _card(
+        summary_card(
             "Peak emergency debt payment",
             peak_debt_payment,
             "moneyCents",
@@ -120,7 +121,7 @@ def _summary_cards(
                 else "No emergency refi in the modeled window."
             ),
         ),
-        _card(
+        summary_card(
             "Shock-adjusted cash flow",
             shock_adjusted_cash_flow,
             "moneyCents",
@@ -138,9 +139,3 @@ def _summary_cards(
         )
     return summary
 
-
-def _card(label: str, value: object, kind: str, *, note: str = "") -> dict[str, object]:
-    card: dict[str, object] = {"label": label, "value": value, "kind": kind}
-    if note:
-        card["note"] = note
-    return card

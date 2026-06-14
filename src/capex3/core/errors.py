@@ -10,6 +10,19 @@ UNDEFINED_METRIC = "UNDEFINED_METRIC"
 MAX_ITERATIONS_EXCEEDED = "MAX_ITERATIONS_EXCEEDED"
 
 
+def json_safe_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {
+            str(key): json_safe_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [json_safe_value(item) for item in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return repr(value)
+
+
 @dataclass(frozen=True)
 class RentalCapexError(ValueError):
     code: str

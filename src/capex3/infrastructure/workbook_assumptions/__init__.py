@@ -1,6 +1,5 @@
 import json
 from importlib import resources
-from pathlib import Path
 from typing import Mapping, Sequence
 
 from capex3.core.workbook_assumptions import (
@@ -13,7 +12,6 @@ from capex3.core.workbook_assumptions import (
 
 
 DATA_PACKAGE = "capex3.infrastructure.workbook_assumptions.data"
-DATA_DIR = Path(__file__).resolve().parent / "data"
 
 
 def load_workbook_model_spec() -> WorkbookModelSpec:
@@ -162,11 +160,14 @@ def _component_lifespan_sources(
         "component lifespans must include lifespans.",
     )
 
-    return {
-        str(row["name"]): float(row["lifespan"])
-        for row in lifespan_rows
-        if isinstance(row, Mapping) and "name" in row
-    }
+    lifespans: dict[str, float] = {}
+    for row in lifespan_rows:
+        lifespan_record = _require_record(row, "lifespan row must be an object.")
+        name = lifespan_record.get("name")
+        if not isinstance(name, str) or not name:
+            raise ValueError("lifespan row must include name.")
+        lifespans[name] = float(lifespan_record.get("lifespan"))
+    return lifespans
 
 
 def _load_source_json(file_name: str) -> Mapping[str, object]:

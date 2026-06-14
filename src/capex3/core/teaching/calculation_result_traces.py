@@ -9,14 +9,14 @@ from capex3.core.solve_rental_capex import (
     RentalCapexSolverRequest,
     solve_rental_capex,
 )
+from capex3.core.solver_question_catalog import (
+    threshold_questions_to_contract,
+    threshold_solver_request_dict,
+)
 from capex3.core.workbook_assumptions import model_spec_record
 
 from .cash_flow_stability_trace import cash_flow_stability_trace
-from .evidence_presentation import presentation_for_layer
-from .solver_question_display import (
-    threshold_questions_to_contract,
-    threshold_solver_tolerance,
-)
+from .evidence_presentation import presentation_for_layer, summary_card
 
 SOLVER_CASE_POLICY = (
     "Threshold previews explore one input at a time under current assumptions."
@@ -59,6 +59,7 @@ def build_calculation_result_traces(
     *,
     solver_variables: Sequence[Mapping[str, object]],
     model_spec: Mapping[str, object],
+    build_what_works_solvers: bool = True,
 ) -> dict[str, object]:
     traces = {
         "cashFlow": _cash_flow_trace(contract),
@@ -69,6 +70,7 @@ def build_calculation_result_traces(
             contract,
             solver_variables=solver_variables,
             model_spec=model_spec,
+            build_solvers=build_what_works_solvers,
         ),
         "cashFlowStability": cash_flow_stability_trace(contract),
     }
@@ -87,15 +89,15 @@ def _cash_flow_trace(result: Mapping[str, object]) -> dict[str, object]:
         "id": "cashFlow",
         "title": "Monthly Cash Flow Breakdown",
         "summary": [
-            _card("Usable income", dashboard["effectiveGrossIncomeMonthly"], "moneyCents"),
-            _card("Operating costs", dashboard["totalMonthlyFixedExpenses"], "moneyCents"),
-            _card(
+            summary_card("Usable income", dashboard["effectiveGrossIncomeMonthly"], "moneyCents"),
+            summary_card("Operating costs", dashboard["totalMonthlyFixedExpenses"], "moneyCents"),
+            summary_card(
                 "Repair fund",
                 dashboard["totalMonthlyCapexReserve"],
                 "moneyCents",
                 note="Snapshot monthly rate from sinking fund.",
             ),
-            _card(
+            summary_card(
                 "True monthly cash flow",
                 dashboard["trueMonthlyCashFlow"],
                 "moneyCents",
@@ -190,9 +192,9 @@ def _repair_driver_trace(result: Mapping[str, object]) -> dict[str, object]:
         "id": "repairDrivers",
         "title": "Repair Drivers",
         "summary": [
-            _card("Total monthly reserve", result["dashboard"]["totalMonthlyCapexReserve"], "moneyCents"),
-            _card("Components tracked", len(rows), "number"),
-            _card("Walkthrough overrides", override_count, "number"),
+            summary_card("Total monthly reserve", result["dashboard"]["totalMonthlyCapexReserve"], "moneyCents"),
+            summary_card("Components tracked", len(rows), "number"),
+            summary_card("Walkthrough overrides", override_count, "number"),
         ],
         "rows": rows,
         "displayRows": display_rows,
@@ -209,20 +211,20 @@ def _ten_year_trace(result: Mapping[str, object]) -> dict[str, object]:
         "id": "tenYear",
         "title": "10-Year Story",
         "summary": [
-            _card(
+            summary_card(
                 "Year-10 ROI",
                 dashboard["year10Roi"],
                 "percent",
                 note="Excludes reserve returned at sale.",
             ),
-            _card(
+            summary_card(
                 "Liquidation wealth",
                 year10["realEstateLiquidationWealth"],
                 "money",
                 note="Includes accumulated reserve returned at sale.",
             ),
-            _card("Annualized ROI", dashboard["year10AnnualizedRoi"], "percent"),
-            _card("Cash needed up front", dashboard["totalInitialInvestment"], "money"),
+            summary_card("Annualized ROI", dashboard["year10AnnualizedRoi"], "percent"),
+            summary_card("Cash needed up front", dashboard["totalInitialInvestment"], "money"),
         ],
         "receipts": _ten_year_sale_bridge_receipts(dashboard, year10),
         "rows": rows,
@@ -444,20 +446,20 @@ def _repair_fund_trace(result: Mapping[str, object]) -> dict[str, object]:
         "id": "repairFund",
         "title": "Repair Fund",
         "summary": [
-            _card(
+            summary_card(
                 "Dashboard monthly rate",
                 trace.get("monthlyContribution"),
                 "moneyCents",
                 note=_repair_fund_monthly_card_note(pattern),
             ),
-            _card("Target reserve", trace.get("targetReserve"), "money"),
-            _card(
+            summary_card("Target reserve", trace.get("targetReserve"), "money"),
+            summary_card(
                 "Repair fund APY",
                 reserve_apy,
                 "percent",
                 note="Interest-bearing reserve account — not checking cash.",
             ),
-            _card(
+            summary_card(
                 "Interest earned Yr 0-10",
                 cumulative_interest,
                 "money",
@@ -515,20 +517,26 @@ def _what_works_trace(
     *,
     solver_variables: Sequence[Mapping[str, object]],
     model_spec: Mapping[str, object],
+    build_solvers: bool = True,
 ) -> dict[str, object]:
     dashboard = result["dashboard"]
+    questions = (
+        _threshold_question_traces(
+            result,
+            solver_variables=solver_variables,
+            model_spec=model_spec,
+        )
+        if build_solvers
+        else []
+    )
     return {
         "id": "whatWorks",
         "title": "What Would Work?",
         "summary": [
-            _card("Current cash flow", dashboard["trueMonthlyCashFlow"], "moneyCents"),
-            _card("Cash needed up front", dashboard["totalInitialInvestment"], "money"),
+            summary_card("Current cash flow", dashboard["trueMonthlyCashFlow"], "moneyCents"),
+            summary_card("Cash needed up front", dashboard["totalInitialInvestment"], "money"),
         ],
-        "questions": _threshold_question_traces(
-            result,
-            solver_variables=solver_variables,
-            model_spec=model_spec,
-        ),
+        "questions": questions,
         "graph": {
             "bars": [
                 _bar("True cash flow", dashboard["trueMonthlyCashFlow"], "moneyCents"),
@@ -601,28 +609,10 @@ def _threshold_question_traces(
     variables = {variable["id"]: variable for variable in solver_variables}
     traces = []
     for question in threshold_questions_to_contract():
-        solver_config = dict(question.get("solver", {}))
-        solver_request = {
-            key: value
-            for key, value in {
-                **solver_config,
-                "baseInput": dict(input_data),
-                "tolerance": threshold_solver_tolerance(
-                    metric=str(solver_config.get("metric") or ""),
-                ),
-            }.items()
-            if key
-            in {
-                "baseInput",
-                "variable",
-                "metric",
-                "targetValue",
-                "lowerBound",
-                "upperBound",
-                "tolerance",
-                "maxIterations",
-            }
-        }
+        solver_request = threshold_solver_request_dict(
+            question,
+            base_input=input_data,
+        )
         solver_result = {"ok": False, "message": "Solver unavailable."}
         try:
             solved = solve_rental_capex(
@@ -669,12 +659,6 @@ def _threshold_state(
         return "ok" if gap_value >= 0 else "warning"
     return "ok"
 
-
-def _card(label: str, value: object, kind: str, *, note: str = "") -> dict[str, object]:
-    card: dict[str, object] = {"label": label, "value": value, "kind": kind}
-    if note:
-        card["note"] = note
-    return card
 
 
 def _bar(label: str, value: object, kind: str) -> dict[str, object]:

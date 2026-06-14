@@ -3,15 +3,27 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from functools import lru_cache
 from typing import Mapping
 
+from capex3.core.calculate_rental_capex import (
+    RentalCapexCalculationRequest,
+    RentalCapexCalculationResult,
+    calculate_rental_capex,
+)
+from capex3.core.errors import RentalCapexError, VALIDATION_ERROR, json_safe_value
+from capex3.core.solve_rental_capex import (
+    RentalCapexSolverRequest,
+    solve_rental_capex,
+)
+from capex3.core.solver_question_catalog import (
+    threshold_questions_to_contract,
+    threshold_solver_request_dict,
+    threshold_solver_tolerance,
+)
 from capex3.core.teaching.calculation_result_traces import (
     SOLVER_DISCLAIMER,
     build_calculation_result_traces,
-)
-from capex3.core.teaching.solver_question_display import (
-    threshold_questions_to_contract,
-    threshold_solver_tolerance,
 )
 from capex3.core.teaching.workbench_metadata import (
     CALCULATION_LINKAGE_FIELDS,
@@ -27,21 +39,17 @@ from capex3.core.teaching.workbench_metadata import (
     STAGE_EVIDENCE_MAPPING,
 )
 from capex3.infrastructure.workbook_assumptions import load_workbook_model_spec_record
-from capex3.presentation.htmx_format import _parse_number, _parse_optional_number
-from capex3.core.calculate_rental_capex import (
-    RentalCapexCalculationRequest,
-    RentalCapexCalculationResult,
-    calculate_rental_capex,
-)
-from capex3.core.errors import RentalCapexError, VALIDATION_ERROR
-from capex3.core.solve_rental_capex import (
-    RentalCapexSolverRequest,
-    solve_rental_capex,
-)
+from capex3.presentation.htmx_format import _parse_number
 
 
-def defaults_payload() -> dict[str, object]:
-    model_spec = load_workbook_model_spec_record()
+@lru_cache(maxsize=1)
+def _cached_model_spec() -> Mapping[str, object]:
+    return load_workbook_model_spec_record()
+
+
+@lru_cache(maxsize=1)
+def _cached_defaults_payload() -> dict[str, object]:
+    model_spec = _cached_model_spec()
     assumptions = model_spec["assumptions"]
     return {
         "ok": True,
@@ -57,7 +65,8 @@ def defaults_payload() -> dict[str, object]:
     }
 
 
-def workbench_payload() -> dict[str, object]:
+@lru_cache(maxsize=1)
+def _cached_workbench_payload() -> dict[str, object]:
     return {
         "ok": True,
         "workbench": {
@@ -69,7 +78,6 @@ def workbench_payload() -> dict[str, object]:
                 for field, metadata in INPUT_FIELD_CONTROLS.items()
             ],
             "thresholdQuestions": deepcopy(threshold_questions_to_contract()),
-            "workbenchThresholdQuestions": deepcopy(threshold_questions_to_contract()),
             "solverVariables": deepcopy(SOLVER_VARIABLES),
             "solverMetrics": deepcopy(SOLVER_METRICS),
             "solverDisclaimer": deepcopy(SOLVER_DISCLAIMER),
@@ -110,15 +118,51 @@ def workbench_payload() -> dict[str, object]:
     }
 
 
-def calculate_payload(inputs: object | None) -> dict[str, object]:
-    model_spec = load_workbook_model_spec_record()
+def _solver_variables(workbench: Mapping[str, object]) -> list[Mapping[str, object]]:
+    return [
+        variable for variable in workbench.get("solverVariables", []) if variable.get("id")
+    ]
+
+
+def _solver_metrics(workbench: Mapping[str, object]) -> list[Mapping[str, object]]:
+    return [metric for metric in workbench.get("solverMetrics", []) if metric.get("id")]
+
+
+def _input_fields_by_id(workbench: Mapping[str, object]) -> dict[str, Mapping[str, object]]:
+    return {
+        str(field.get("field")): field
+        for field in workbench.get("inputFields", [])
+        if field.get("field")
+    }
+
+
+def defaults_payload() -> dict[str, object]:
+    return deepcopy(_cached_defaults_payload())
+
+
+def workbench_payload() -> dict[str, object]:
+    return deepcopy(_cached_workbench_payload())
+
+
+def calculate_payload(
+    inputs: object | None,
+    *,
+    build_what_works_solvers: bool = True,
+) -> dict[str, object]:
+    model_spec = _cached_model_spec()
     result = calculate_rental_capex(
         RentalCapexCalculationRequest.from_contract_dict(
             inputs if inputs is not None else {}
         ),
         model_spec=model_spec,
     )
-    return {"ok": True, "result": result_with_traces(result)}
+    return {
+        "ok": True,
+        "result": result_with_traces(
+            result,
+            build_what_works_solvers=build_what_works_solvers,
+        ),
+    }
 
 
 def solve_payload(request: object | None) -> tuple[int, dict[str, object]]:
@@ -140,7 +184,7 @@ def solve_payload(request: object | None) -> tuple[int, dict[str, object]]:
     }
     result = solve_rental_capex(
         RentalCapexSolverRequest.from_contract_dict(solver_request),
-        model_spec=load_workbook_model_spec_record(),
+        model_spec=_cached_model_spec(),
     )
     contract = result.to_contract_dict()
     return (200 if result.ok else 400, {"ok": result.ok, "result": contract})
@@ -154,7 +198,7 @@ def error_payload(error: Exception) -> tuple[int, dict[str, object]]:
                 "ok": False,
                 "code": error.code,
                 "message": str(error),
-                "details": _json_safe(dict(error.details)),
+                "details": json_safe_value(dict(error.details)),
             },
         )
     return (
@@ -167,17 +211,23 @@ def error_payload(error: Exception) -> tuple[int, dict[str, object]]:
     )
 
 
-def result_with_traces(result: RentalCapexCalculationResult) -> dict[str, object]:
+def result_with_traces(
+    result: RentalCapexCalculationResult,
+    *,
+    build_what_works_solvers: bool = True,
+) -> dict[str, object]:
+    model_spec = _cached_model_spec()
     contract = result.to_contract_dict()
     contract["audit"] = {
         **dict(contract["audit"]),
-        "sourceWorkbook": "rental-capex-model-v4-defaults.xlsx",
+        "sourceWorkbook": model_spec.get("sourceWorkbook", ""),
         "runtimeOwner": "python",
     }
     contract["traces"] = build_calculation_result_traces(
         contract,
         solver_variables=SOLVER_VARIABLES,
-        model_spec=load_workbook_model_spec_record(),
+        model_spec=model_spec,
+        build_what_works_solvers=build_what_works_solvers,
     )
     return contract
 
@@ -209,7 +259,7 @@ def solver_preview_payload(
     )
     question = questions.get(question_id) if threshold else None
     if question:
-        solver_request = {**dict(question.get("solver", {})), "baseInput": dict(inputs)}
+        solver_request = threshold_solver_request_dict(question, base_input=inputs)
         metric_id = str(solver_request.get("metric") or solver_metric)
         request = {
             "questionId": question["id"],
@@ -232,8 +282,8 @@ def solver_preview_payload(
                 value_kind=str(metric_metadata.get("valueKind") or ""),
             ),
         }
-        lower = _parse_optional_number(solver_lower)
-        upper = _parse_optional_number(solver_upper)
+        lower = _parse_number(solver_lower)
+        upper = _parse_number(solver_upper)
         if lower is not None:
             request["lowerBound"] = lower
         if upper is not None:
@@ -305,41 +355,14 @@ def _resolve_solver_request(request: object) -> dict[str, object]:
             {"questionId": request["questionId"]},
         )
 
-    solver = dict(question["solver"])
-    tolerance = request.get(
-        "tolerance",
-        threshold_solver_tolerance(metric=str(solver.get("metric") or "")),
-    )
-    return {
-        **solver,
-        "baseInput": request.get("baseInput", {}),
-        "tolerance": tolerance,
+    return threshold_solver_request_dict(
+        question,
+        base_input=request.get("baseInput", {}),
+    ) | {
+        "tolerance": request.get(
+            "tolerance",
+            threshold_solver_tolerance(
+                metric=str(dict(question["solver"]).get("metric") or ""),
+            ),
+        ),
     }
-
-
-def _solver_variables(workbench: Mapping[str, object]) -> list[Mapping[str, object]]:
-    return [
-        variable for variable in workbench.get("solverVariables", []) if variable.get("id")
-    ]
-
-
-def _solver_metrics(workbench: Mapping[str, object]) -> list[Mapping[str, object]]:
-    return [metric for metric in workbench.get("solverMetrics", []) if metric.get("id")]
-
-
-def _input_fields_by_id(workbench: Mapping[str, object]) -> dict[str, Mapping[str, object]]:
-    return {
-        str(field.get("field")): field
-        for field in workbench.get("inputFields", [])
-        if field.get("field")
-    }
-
-
-def _json_safe(value: object) -> object:
-    if isinstance(value, Mapping):
-        return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    return repr(value)

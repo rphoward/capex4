@@ -11,17 +11,16 @@ from urllib.parse import parse_qs
 from urllib.parse import unquote
 from urllib.parse import urlsplit
 
-from capex3.presentation.htmx_renderer import render_full_page
-from capex3.presentation.htmx_renderer import render_ui_fragment
-from capex3.presentation.http_contracts import (
-    calculate_payload as _calculate_payload,
-    defaults_payload as _defaults_payload,
-    solve_payload as _solve_payload,
-    workbench_payload as _workbench_payload,
-)
-from capex3.core.errors import RentalCapexError
-from capex3.core.teaching import (
+from capex3.core.errors import RentalCapexError, json_safe_value
+from capex3.core.teaching.boundary_shapes import (
     selected_what_works_presentation_contract_to_contract,
+)
+from capex3.presentation.htmx_renderer import render_full_page, render_ui_fragment
+from capex3.presentation.http_contracts import (
+    calculate_payload,
+    defaults_payload,
+    solve_payload,
+    workbench_payload,
 )
 
 
@@ -83,22 +82,6 @@ def what_works_presentation_contract_payload() -> dict[str, object]:
         "contractSource": "capex3.core.teaching",
         "contract": selected_what_works_presentation_contract_to_contract(),
     }
-
-
-def defaults_payload() -> dict[str, object]:
-    return _defaults_payload()
-
-
-def workbench_payload() -> dict[str, object]:
-    return _workbench_payload()
-
-
-def calculate_payload(inputs: object | None) -> dict[str, object]:
-    return _calculate_payload(inputs)
-
-
-def solve_payload(request: object | None) -> tuple[int, dict[str, object]]:
-    return _solve_payload(request)
 
 
 def handle_get(raw_path: str) -> HttpApiResponse | StaticAssetResponse | HtmlResponse:
@@ -197,7 +180,7 @@ def exception_response(error: Exception) -> HttpApiResponse:
                 "ok": False,
                 "code": error.code,
                 "message": str(error),
-                "details": _json_safe(dict(error.details)),
+                "details": json_safe_value(dict(error.details)),
             },
         )
 
@@ -209,11 +192,6 @@ def exception_response(error: Exception) -> HttpApiResponse:
             "message": str(error) or "Python calculator request failed.",
         },
     )
-
-
-def error_payload(error: Exception) -> tuple[int, dict[str, object]]:
-    response = exception_response(error)
-    return response.status.value, response.payload
 
 
 class RentalCapexTeachingHeartbeatHandler(BaseHTTPRequestHandler):
@@ -363,12 +341,3 @@ def _static_asset_cache_control(relative_asset_path: PurePosixPath) -> str:
         return STATIC_BROWSER_ASSET_CACHE_CONTROL
     return NO_STORE_CACHE_CONTROL
 
-
-def _json_safe(value: object) -> object:
-    if isinstance(value, Mapping):
-        return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    return repr(value)

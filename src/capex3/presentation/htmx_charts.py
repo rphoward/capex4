@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import Mapping, Sequence
 
-from capex3.presentation.htmx_format import _attr, _format, _html
+from capex3.presentation.htmx_format import _attr, _format, _format_chart_compact_money, _html
 from capex3.presentation.htmx_state import UiState
-from capex3.presentation.htmx_trace import _result_trace, _trace_collection
+from capex3.presentation.htmx_evidence_summary import (
+    _result_trace,
+    _trace_collection,
+)
 
 TEN_YEAR_SERIES_CLASSES = {
     "sellNow": "sell-now",
@@ -183,7 +186,7 @@ def _axis_markup(
         )
         parts.append(
             f'<text class="chart-y-label" x="{left - 8:.2f}" y="{y + 3:.2f}" '
-            f'text-anchor="end">{_html(_format_chart_k(value))}</text>'
+            f'text-anchor="end">{_html(_format_chart_compact_money(value))}</text>'
         )
 
     parts.append(
@@ -339,7 +342,7 @@ def _ten_year_endpoints(
             continue
         last_value = float(values[-1])
         x, y = _point(len(values) - 1, last_value, point_count, min_y, max_y, height)
-        label = _format_chart_k(last_value)
+        label = _format_chart_compact_money(last_value)
         label_x, anchor = _endpoint_label_position(x, height)
         css_class = _attr(class_name)
         parts.append(
@@ -456,7 +459,7 @@ def _repair_event_markers(
             continue
         label = str(event.get("label") or "Repair")
         x, marker_y = _point(year, float(amount), point_count, min_y, max_y, height)
-        marker_label = f"{_format_chart_k(amount)} · {label}"
+        marker_label = f"{_format_chart_compact_money(amount)} · {label}"
         parts.append(
             f"""<g class="repair-event-marker">
         <line x1="{x:.2f}" y1="{top:.2f}" x2="{x:.2f}" y2="{baseline_y:.2f}"/>
@@ -651,15 +654,3 @@ def _repair_fund_chart_events(
         marker["label"] = labels[0] if len(labels) == 1 else f"{len(labels)} repairs"
         markers.append(marker)
     return markers
-
-
-def _format_chart_k(value: object) -> str:
-    if not isinstance(value, (int, float)):
-        return "-"
-    prefix = "-$" if value < 0 else "$"
-    magnitude = abs(value)
-    if magnitude >= 1_000_000:
-        return f"{prefix}{magnitude / 1_000_000:.1f}M"
-    if magnitude >= 1_000:
-        return f"{prefix}{magnitude / 1000:.0f}k"
-    return f"{prefix}{magnitude:.0f}"

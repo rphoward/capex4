@@ -6,7 +6,12 @@ from capex3.core.calculate_rental_capex import (
     RentalCapexCalculationRequest,
     calculate_rental_capex,
 )
-from capex3.core.deal_inputs import RentalCapexDealInputRequest, assert_model_spec, normalize_input
+from capex3.core.deal_inputs import (
+    RentalCapexDealInputRequest,
+    _assert_not_boolean_number,
+    assert_model_spec,
+    normalize_input,
+)
 from capex3.core.errors import (
     MAX_ITERATIONS_EXCEEDED,
     NO_BRACKET,
@@ -14,6 +19,7 @@ from capex3.core.errors import (
     RentalCapexError,
     UNDEFINED_METRIC,
     VALIDATION_ERROR,
+    json_safe_value,
 )
 from capex3.core.reserve_first_shortfall_solver import (
     ALREADY_CLEARED_REASON,
@@ -588,25 +594,10 @@ def _caught_error_contract(error: RentalCapexError) -> dict[str, object]:
         "error": {
             "code": error.code,
             "message": str(error),
-            "details": _json_safe_error_details(error.details),
+            "details": json_safe_value(error.details),
         },
     }
 
-
-def _json_safe_error_details(value: object) -> object:
-    if isinstance(value, Mapping):
-        return {
-            str(detail_key): _json_safe_error_details(detail_value)
-            for detail_key, detail_value in value.items()
-        }
-
-    if isinstance(value, (list, tuple)):
-        return [_json_safe_error_details(item) for item in value]
-
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-
-    return repr(value)
 
 
 def _is_finite_number(value: object) -> bool:
@@ -616,14 +607,6 @@ def _is_finite_number(value: object) -> bool:
         and math.isfinite(value)
     )
 
-
-def _assert_not_boolean_number(value: object, field: str) -> None:
-    if isinstance(value, bool):
-        raise RentalCapexError(
-            VALIDATION_ERROR,
-            f"{field} must be a finite number.",
-            {"field": field, "value": value},
-        )
 
 
 def _sign(value: float) -> int:

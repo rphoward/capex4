@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Mapping, Sequence
+from typing import Mapping
 
 from capex3.core.teaching.evidence_presentation import drilldown_title as _drilldown_title
-from capex3.core.teaching.evidence_presentation import primary_reward_key
 from capex3.presentation.htmx_evidence_primitives import (
     _drivers_table,
     _evidence_drilldown,
-    _evidence_focus_class,
     _evidence_layer_shell,
     _receipt_empty_row,
     _receipt_panel,
@@ -21,6 +19,18 @@ from capex3.presentation.htmx_format import (
     _hx_post,
 )
 from capex3.presentation.htmx_charts import _evidence_graph
+from capex3.presentation.htmx_evidence_summary import (
+    _first_present,
+    _result_trace,
+    _summary_cards_html,
+    _trace_collection,
+    _trace_formatted_value,
+    _trace_summary_cards,
+)
+from capex3.presentation.htmx_offer_ready import (
+    _cash_flow_stability_section,
+    _what_works_section,
+)
 from capex3.presentation.htmx_shell import _summary_panel
 from capex3.presentation.htmx_state import (
     UiState,
@@ -31,12 +41,6 @@ from capex3.presentation.htmx_state import (
     _metric_strip_navigation_by_field,
     _results_summary_for_state,
     _source_metric_strip_fields,
-)
-from capex3.presentation.htmx_trace import (
-    _first_present,
-    _result_trace,
-    _trace_collection,
-    _trace_value,
 )
 
 
@@ -66,7 +70,6 @@ def _output_panel(state: UiState) -> str:
         if state.active_evidence_layer != "tenYear"
         else ""
     )
-    pin_badge = ""
     return f"""
 <section class="output-panel right-panel calc-results">
   {error}
@@ -81,7 +84,6 @@ def _output_panel(state: UiState) -> str:
               <div class="evidence-title-row">
                 {overview_button}
                 <h2 id="evidence-title">{_html(layer.get("title", ""))}</h2>
-                {pin_badge}
               </div>
               <p id="evidence-description" class="evidence-description">{_html(layer.get("description", ""))}</p>
             </div>
@@ -95,7 +97,6 @@ def _output_panel(state: UiState) -> str:
             {_evidence_graph(state)}
           </div>
           <div class="metric-grid metric-strip chart-summary" id="metric-grid" data-source-role="metric-strip">{_metric_cards(state)}</div>
-          {_metric_breakdown_panel(state)}
           {_evidence_sections(state)}
         </div>
         <aside class="layer-rail" aria-label="Evidence layers">
@@ -134,14 +135,13 @@ def _metric_cards(state: UiState) -> str:
         if isinstance(value, (int, float)) and value < 0:
             classes.append("negative")
         is_active = field == state.active_metric_field
-        if is_active or metric.get("evidenceLayerId") == state.active_evidence_layer:
+        if is_active:
             classes.append("active")
         expanded = "true" if is_active else "false"
         nav = _metric_strip_navigation_by_field(state.workbench).get(field, {})
-        cta = "Hide breakdown" if is_active else str(nav.get("cta") or "Details")
-        button_value = "" if is_active else field
+        cta = str(nav.get("cta") or "Details")
         cards.append(
-            f"""<button type="button" class="{' '.join(classes)}" aria-expanded="{expanded}" name="activeMetricField" value="{_attr(button_value)}" {_hx_post("/ui/metric")}>
+            f"""<button type="button" class="{' '.join(classes)}" aria-expanded="{expanded}" name="metricStripToggle" value="{_attr(field)}" {_hx_post("/ui/metric")}>
   <strong>{_html(metric.get("label", field))}</strong>
   <span>{_html(_format(value, metric.get("kind") or metric.get("valueKind")))}</span>
   <small class="metric-cta">{_html(cta)}</small>
@@ -150,36 +150,7 @@ def _metric_cards(state: UiState) -> str:
     return "\n".join(cards)
 
 
-def _metric_breakdown_panel(state: UiState) -> str:
-    if not state.active_metric_field:
-        return ""
-    nav = _metric_strip_navigation_by_field(state.workbench).get(state.active_metric_field, {})
-    layer_id = str(nav.get("layer") or "")
-    if layer_id != state.active_evidence_layer:
-        return ""
-    expected_focus = primary_reward_key(layer_id)
-    if expected_focus and nav.get("focus") != expected_focus:
-        return ""
-    if layer_id != "cashFlow":
-        return ""
-    receipt_html = _cash_flow_receipt_waterfall(
-        state,
-        extra_classes="evidence-reward evidence-focus",
-    )
-    return _receipt_panel(
-        "Cash flow breakdown",
-        receipt_html,
-        panel_class="metric-breakdown-panel",
-        panel_id="metric-breakdown-panel",
-    )
-
-
 def _evidence_sections(state: UiState) -> str:
-    from capex3.presentation.htmx_offer_ready import (
-        _cash_flow_stability_section,
-        _what_works_section,
-    )
-
     return "\n".join(
         [
             _ten_year_section(state),
@@ -195,17 +166,12 @@ def _evidence_sections(state: UiState) -> str:
 def _cash_flow_section(state: UiState) -> str:
     hidden = _hidden_attr_for_layer(state, "cashFlow")
     trace = _result_trace(state, "cashFlow")
-    focus_class = _evidence_focus_class(state, "cashFlow")
     layer_copy = (
-        ""
-        if focus_class
-        else (
-            '<p class="layer-copy">This layer shows the dashboard snapshot: '
-            "true monthly cash flow after deducting the full monthly repair reserve every month—not "
-            "the post-cap annual contribution from the pro forma. After the reserve cap fills, cash "
-            "improvement shows up in accumulated cash flow; open the 10-Year Story "
-            "view to follow that path.</p>"
-        )
+        '<p class="layer-copy">This layer shows the dashboard snapshot: '
+        "true monthly cash flow after deducting the full monthly repair reserve every month—not "
+        "the post-cap annual contribution from the pro forma. After the reserve cap fills, cash "
+        "improvement shows up in accumulated cash flow; open the 10-Year Story "
+        "view to follow that path.</p>"
     )
     receipt_reward = _cash_flow_receipt_waterfall(
         state,
@@ -214,11 +180,7 @@ def _cash_flow_section(state: UiState) -> str:
     )
     receipt_detail = _cash_flow_receipt_waterfall(state, extra_classes="receipt-detail")
     drilldown = _evidence_drilldown(_drilldown_title(trace), receipt_detail)
-    if focus_class:
-        body = f"""
-  {drilldown}"""
-    else:
-        body = f"""
+    body = f"""
   {_receipt_panel("Cash flow breakdown", receipt_reward)}
   {drilldown}"""
     return _evidence_layer_shell(
@@ -255,7 +217,7 @@ def _cash_flow_receipt_waterfall(
 def _cash_flow_receipt_row(row: Mapping[str, object]) -> str:
     receipt_kind = str(row.get("receiptKind") or "")
     row_class = "total-row" if receipt_kind == "total" else "sub" if receipt_kind == "subtotal" else ""
-    value = _trace_value(row, ("value", "amount"))
+    value = _first_present(row, ("value", "amount"))
     value_class = "rcpt-val"
     if receipt_kind == "deduction":
         value_class += " ded"
@@ -332,14 +294,13 @@ def _repair_drivers_section(state: UiState) -> str:
     reward_table_rows = "".join(_repair_driver_row(row) for row in top_rows)
     if not reward_table_rows:
         reward_table_rows = table_rows
-    focus_class = _evidence_focus_class(state, "repairDrivers")
     reward_table = _drivers_table("repair-drivers-reward-table", reward_table_rows)
     drilldown = _evidence_drilldown(
         _drilldown_title(trace),
         _drivers_table("repair-drivers-table", table_rows),
     )
     body = f"""
-  <div id="repair-drivers-cards" class="evidence-summary repair-driver-cards evidence-reward{focus_class}">{_summary_cards_html(_trace_summary_cards(trace))}</div>
+  <div id="repair-drivers-cards" class="evidence-summary repair-driver-cards evidence-reward">{_summary_cards_html(_trace_summary_cards(trace))}</div>
   {reward_table}
   {drilldown}"""
     return _evidence_layer_shell(
@@ -351,11 +312,11 @@ def _repair_drivers_section(state: UiState) -> str:
 
 
 def _repair_driver_row(row: Mapping[str, object]) -> str:
-    share = _trace_value(row, ("shareOfReserve", "share", "percentOfReserve"))
+    share = _first_present(row, ("shareOfReserve", "share", "percentOfReserve"))
     reserve = _trace_formatted_value(row, ("monthlyReserve", "value", "amount"), "moneyCents")
     source_text = str(row.get("source") or row.get("overrideStatus") or "Default")
     source_class = "source-override" if source_text == "Walkthrough override" else ""
-    remaining_life = _trace_value(row, ("remainingLife",))
+    remaining_life = _first_present(row, ("remainingLife",))
     remaining_text = row.get("remainingLifeLabel") or (
         f"{_format(remaining_life, None)} yr" if remaining_life is not None else "-"
     )
@@ -380,7 +341,7 @@ def _repair_driver_share_bar(share: object) -> str:
     width = max(3, min(100, percent))
     return f"""
 <div class="share-cell">
-  <div class="bar-tr"><div class="bar-fl" style="width: {width:.1f}%"></div></div>
+  <div class="bar-tr"><div class="bar-fl" style="--share-width: {width:.1f}%"></div></div>
   <span>{_html(_format(share, "percent") if isinstance(share, (int, float)) else "-")}</span>
 </div>"""
 
@@ -444,7 +405,7 @@ def _ten_year_table_row(
     ):
         cash_position = initial_investment + accumulated_cash
     return f"""<tr>
-  <td>{_html(_trace_value(row, ("year", "label")))}</td>
+  <td>{_html(_first_present(row, ("year", "label")))}</td>
   <td>{_html(_trace_formatted_value(row, ("realEstateLiquidationWealth", "rentalPath", "rentalWealth"), "money"))}</td>
   <td>{_html(_format(accumulated_cash, "money"))}</td>
   <td>{_html(_format(row.get("annualCapexContribution"), "money"))}</td>
@@ -511,41 +472,6 @@ def _proforma_panel(state: UiState) -> str:
 </section>"""
 
 
-def _summary_cards_html(cards: Sequence[Mapping[str, object]]) -> str:
-    if not cards:
-        cards = [
-            {
-                "label": "Evidence trace unavailable",
-                "value": "-",
-                "note": "Run a calculation with core trace data.",
-            }
-        ]
-    return "".join(
-        f"""<div class="evidence-card">
-  <strong>{_html(card.get("label", ""))}</strong>
-  <span>{_html(card.get("value", ""))}</span>
-  {f'<small>{_html(card.get("note", ""))}</small>' if card.get("note") else ""}
-</div>"""
-        for card in cards
-    )
-
-
-def _trace_summary_cards(trace: Mapping[str, object]) -> list[dict[str, object]]:
-    cards = []
-    for card in _trace_collection(trace, ("summaryCards", "summary", "cards")):
-        label = card.get("label") or card.get("title") or card.get("id")
-        if not label:
-            continue
-        cards.append(
-            {
-                "label": label,
-                "value": _trace_formatted_value(card, ("value", "amount", "metricValue"), card.get("kind")),
-                "note": card.get("note") or card.get("description") or card.get("detail") or "",
-            }
-        )
-    return cards
-
-
 def _trace_receipt_cards(trace: Mapping[str, object]) -> list[dict[str, object]]:
     cards = []
     for receipt in _trace_collection(trace, ("receipts",)):
@@ -565,22 +491,11 @@ def _trace_receipt_cards(trace: Mapping[str, object]) -> list[dict[str, object]]
     return cards
 
 
-def _trace_formatted_value(
-    source: Mapping[str, object],
-    keys: Sequence[str],
-    fallback_kind: object,
-) -> str:
-    formatted = source.get("formattedValue") or source.get("displayValue")
-    if formatted is not None:
-        return str(formatted)
-    return _format(_trace_value(source, keys), source.get("kind") or source.get("valueKind") or fallback_kind)
-
-
 def _repair_driver_quantity_text(row: Mapping[str, object]) -> str:
     if row.get("quantityLabel") is not None:
         return str(row["quantityLabel"])
-    effective = _trace_value(row, ("effectiveQuantity", "quantity"))
-    default = _trace_value(row, ("defaultQuantity",))
+    effective = _first_present(row, ("effectiveQuantity", "quantity"))
+    default = _first_present(row, ("defaultQuantity",))
     source = row.get("quantitySource") or ""
     effective_text = _format(effective, None)
     if default is None or default == effective:
@@ -591,8 +506,8 @@ def _repair_driver_quantity_text(row: Mapping[str, object]) -> str:
 def _repair_driver_age_text(row: Mapping[str, object]) -> str:
     if row.get("ageLifeLabel") is not None:
         return str(row["ageLifeLabel"])
-    age = _trace_value(row, ("effectiveAge", "age"))
-    remaining_life = _trace_value(row, ("remainingLife", "life"))
+    age = _first_present(row, ("effectiveAge", "age"))
+    remaining_life = _first_present(row, ("remainingLife", "life"))
     age_source = row.get("ageSource") or ""
     parts = []
     if age is not None:

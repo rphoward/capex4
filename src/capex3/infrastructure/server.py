@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import socket
 from http.server import ThreadingHTTPServer
 from typing import Sequence
 
@@ -17,18 +16,7 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 3000
 
 
-class LocalhostThreadingHTTPServer(ThreadingHTTPServer):
-    address_family = socket.AF_INET6
-
-    def server_bind(self) -> None:
-        if hasattr(socket, "IPV6_V6ONLY"):
-            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
-        super().server_bind()
-
-
 def create_server(host: str, port: int) -> ThreadingHTTPServer:
-    if host == "localhost":
-        return LocalhostThreadingHTTPServer(("::", port), RentalCapexTeachingHeartbeatHandler)
     return ThreadingHTTPServer((host, port), RentalCapexTeachingHeartbeatHandler)
 
 

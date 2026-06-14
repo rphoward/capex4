@@ -106,4 +106,4 @@ python -m capex3.infrastructure.server
 ## NOTES
 
 - Triple server entry: `-m capex3.infrastructure`, `-m capex3.infrastructure.server`, `-m capex3.runtime.rental_capex_teaching_server`
-- Duplicate catalog modules: `core/solver_question_catalog.py` and `core/teaching/solver_question_catalog.py` (teaching re-exports)
+- Workbook assumption shapes: `core/workbook_assumptions.py`; files + load in `infrastructure/workbook_assumptions/`
