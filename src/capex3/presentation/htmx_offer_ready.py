@@ -14,12 +14,8 @@ from capex3.presentation.htmx_format import (
     _html,
     _hx_post,
 )
-from capex3.presentation.htmx_evidence import (
-    _result_trace,
-    _summary_cards_html,
-    _trace_collection,
-    _trace_summary_cards,
-)
+from capex3.presentation.htmx_evidence import _summary_cards_html, _trace_summary_cards
+from capex3.presentation.htmx_trace import _result_trace, _trace_collection
 from capex3.presentation.htmx_evidence_primitives import (
     _evidence_drilldown,
     _evidence_focus_class,

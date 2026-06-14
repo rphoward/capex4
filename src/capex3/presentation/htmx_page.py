@@ -12,8 +12,6 @@ from capex3.presentation.htmx_inputs import _deal_identity_label, _input_panel
 from capex3.presentation.htmx_state import UiState, _build_state, _hidden_state_fields
 
 HTMX_VENDOR_ASSET_PATH = "/assets/vendor/htmx.min.js"
-HIGHCHARTS_VENDOR_ASSET_PATH = "/assets/vendor/highcharts.js"
-CHARTS_SCRIPT_PATH = "/assets/charts.js"
 FONTS_STYLESHEET_PATH = "/assets/fonts.css"
 TOKENS_STYLESHEET_PATH = "/assets/tokens.css"
 
@@ -50,8 +48,6 @@ def _document(app_fragment: str) -> str:
 {_font_head_markup()}
     <link rel="stylesheet" href="{TOKENS_STYLESHEET_PATH}">
     <link rel="stylesheet" href="/assets/styles.css">
-    <script src="{HIGHCHARTS_VENDOR_ASSET_PATH}" defer></script>
-    <script src="{CHARTS_SCRIPT_PATH}" defer></script>
     <script src="{HTMX_VENDOR_ASSET_PATH}" defer></script>
   </head>
   <body>

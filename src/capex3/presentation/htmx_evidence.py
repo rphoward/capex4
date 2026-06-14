@@ -20,6 +20,7 @@ from capex3.presentation.htmx_format import (
     _html,
     _hx_post,
 )
+from capex3.presentation.htmx_charts import _evidence_graph
 from capex3.presentation.htmx_shell import _summary_panel
 from capex3.presentation.htmx_state import (
     UiState,
@@ -30,6 +31,12 @@ from capex3.presentation.htmx_state import (
     _metric_strip_navigation_by_field,
     _results_summary_for_state,
     _source_metric_strip_fields,
+)
+from capex3.presentation.htmx_trace import (
+    _first_present,
+    _result_trace,
+    _trace_collection,
+    _trace_value,
 )
 
 
@@ -42,9 +49,6 @@ def _results_summary_strip(state: UiState) -> str:
 
 
 def _output_panel(state: UiState) -> str:
-    # Deferred: htmx_charts imports trace helpers from this module.
-    from capex3.presentation.htmx_charts import _evidence_graph
-
     error = (
         f'<div id="calculation-error" class="calculation-error">{_html(state.error_message)}</div>'
         if state.error_message
@@ -561,25 +565,6 @@ def _trace_receipt_cards(trace: Mapping[str, object]) -> list[dict[str, object]]
     return cards
 
 
-def _trace_collection(
-    source: object,
-    keys: Sequence[str],
-) -> list[Mapping[str, object]]:
-    if isinstance(source, list):
-        return [item for item in source if isinstance(item, Mapping)]
-    if not isinstance(source, Mapping):
-        return []
-    for key in keys:
-        value = source.get(key)
-        if isinstance(value, list):
-            return [item for item in value if isinstance(item, Mapping)]
-    return []
-
-
-def _trace_value(source: Mapping[str, object], keys: Sequence[str]) -> object:
-    return _first_present(source, keys)
-
-
 def _trace_formatted_value(
     source: Mapping[str, object],
     keys: Sequence[str],
@@ -589,13 +574,6 @@ def _trace_formatted_value(
     if formatted is not None:
         return str(formatted)
     return _format(_trace_value(source, keys), source.get("kind") or source.get("valueKind") or fallback_kind)
-
-
-def _result_trace(state: UiState, name: str) -> Mapping[str, object]:
-    if not state.result:
-        return {}
-    trace = state.result.get("traces", {}).get(name, {})
-    return trace if isinstance(trace, Mapping) else {}
 
 
 def _repair_driver_quantity_text(row: Mapping[str, object]) -> str:
@@ -625,10 +603,3 @@ def _repair_driver_age_text(row: Mapping[str, object]) -> str:
         parts.append(str(age_source))
     return " / ".join(parts)
 
-
-def _first_present(source: Mapping[str, object], keys: Sequence[str]) -> object:
-    for key in keys:
-        value = source.get(key)
-        if value is not None:
-            return value
-    return None

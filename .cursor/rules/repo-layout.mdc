@@ -1,0 +1,42 @@
+---
+description: USE WHEN creating, moving, or placing files; product home is src/capex3/ in this repo.
+alwaysApply: true
+---
+
+(def-sop repo-layout
+  (context
+    (target "any-agent-working-in-this-workspace")
+    (optimization "one-named-product-home-portable-across-repos"))
+
+  <central_idea>
+  (center-of-gravity
+    (invariant "Each repository has one product home where implementation lives. In capex4 that home is src/capex3/ (import package capex3). The repo root is workspace shell plus supporting trees—not where calculation or presentation code grows."))
+  </central_idea>
+
+  (protocol-1-product-home
+    (capex4
+      (product_home "src/capex3/")
+      (import_package "capex3")
+      (repo_folder "capex4")
+      (note "Repo folder name differs from import package; both are intentional."))
+    (enforce (implementation-and-shipped-app-code-under product-home))
+    (forbidden (product-code-at-repo-root 'generic-app-folders-at-root-without-user-explicit))
+    (portable-default "repo-root/<project-slug>/ when slug-named folder is the product home in other repos"))
+
+  (protocol-2-root-staging-yard
+    (allow (user-drops-docs 'experiments 'temporary-junk-manually-into-root))
+    (forbidden (agent-creating-junk 'build-artifacts 'ship-output 'generated-files-in-root-without-explicit-permission)))
+
+  (protocol-3-supporting-trees
+    (enforce (supporting-material-in-named-subfolders-not-mixed-into-product-home))
+    (roles
+      (docs/ "human-facing prose when present")
+      (CONTEXT.md "domain language at repo root")
+      (tests/ "verification at repo root; PYTHONPATH=src")
+      (tools/ "local scripts such as start-capex4.ps1")
+      (.cursor/ "agent rules, IDE config, and .cursor/plans/ implementation plans"))
+    (absent-here (Planner/ assets/ DocTools/ Docs/ — do not create without explicit user request)))
+
+  (protocol-4-explicit-permission-gate
+    (if (would-place-generated-or-ship-output-at-repo-root)
+        (progn (halt) (ask-user-explicit-permission) (wait-for-resolution)))))

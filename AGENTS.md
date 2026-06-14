@@ -65,7 +65,7 @@ capex4/
 - Split workbook assumptions: shapes in `core/workbook_assumptions.py`; files + load in `infrastructure/workbook_assumptions/`
 - Presentation calls core with `model_spec=` injected from infrastructure — never loads JSON directly in core
 - Tests use **unittest**, not pytest (despite `.gitignore` listing `.pytest_cache/`)
-- Zero declared deps — stdlib `http.server` + vendored htmx only
+- Zero declared deps — stdlib `http.server` + vendored JS in `browser_assets/` (see architecture gate)
 - Static check: `python -m compileall src\capex3 tests` (no ruff/mypy/black)
 
 ## ANTI-PATTERNS (THIS PROJECT)
@@ -75,7 +75,8 @@ capex4/
 - Presentation inventing metrics or loading workbook JSON without `http_contracts` path
 - Merging B28 vs L17 year-10 ROI metrics (distinct workbook fields)
 - Using `spreadsheet-defaults.json` as CI/runtime truth (audit/regen only)
-- Adding JS beyond `browser_assets/vendor/htmx.min.js`; no `fetch(`, `XMLHttpRequest`, `type="module"`
+- Allowed presentation JS (`tests/test_architecture_gates.py`): `vendor/htmx.min.js` only; charts are server-rendered inline SVG from `htmx_charts.py`
+- No other JS; no `fetch(`, `XMLHttpRequest`, `type="module"`
 
 ## COMMANDS
 
@@ -93,7 +94,9 @@ python -m capex3.infrastructure.server
 
 ## CURSOR / AGENTS
 
-- Nearest `AGENTS.md` wins when working in subtrees.
+- Root `AGENTS.md` holds policy, boundaries, conventions, and verification commands.
+- Subtree `AGENTS.md` files are navigation-only (where to look); nearest wins for file placement hints.
+- Implementation plans live in `.cursor/plans/` (not `Planner/`).
 - Subtree context:
   - `src/capex3/core/AGENTS.md`
   - `src/capex3/infrastructure/AGENTS.md`

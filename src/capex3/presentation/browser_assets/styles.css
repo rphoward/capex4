@@ -1274,18 +1274,11 @@ select:focus {
   background-size: 100% 40px, 10% 100%;
 }
 
-.highcharts-host {
+.server-svg-chart {
+  display: block;
   width: 100%;
-  min-height: 280px;
-}
-
-.repair-fund-chart .highcharts-host {
   min-height: 260px;
-}
-
-.highcharts-host .highcharts-container,
-.highcharts-host .highcharts-root text {
-  font-family: var(--font-ui) !important;
+  height: auto;
 }
 
 .svg-wrap svg {

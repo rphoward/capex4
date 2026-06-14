@@ -47,8 +47,6 @@ FORBIDDEN_PRESENTATION_IMPORT_PREFIXES = (
     "capex3.workbook_assumptions",
 )
 APPROVED_PRESENTATION_JAVASCRIPT = {
-    Path("browser_assets/charts.js"),
-    Path("browser_assets/vendor/highcharts.js"),
     Path("browser_assets/vendor/htmx.min.js"),
 }
 
@@ -214,7 +212,6 @@ class ArchitectureDependencyGatesTest(unittest.TestCase):
             and path.relative_to(browser_assets_root)
             not in {
                 Path("vendor/htmx.min.js"),
-                Path("vendor/highcharts.js"),
             }
         )
         forbidden_fragments = [

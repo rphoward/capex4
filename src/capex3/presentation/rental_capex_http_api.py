@@ -38,9 +38,7 @@ _CACHEABLE_BROWSER_ASSETS = {
     PurePosixPath("fonts.css"),
     PurePosixPath("tokens.css"),
     PurePosixPath("styles.css"),
-    PurePosixPath("charts.js"),
     PurePosixPath("vendor/htmx.min.js"),
-    PurePosixPath("vendor/highcharts.js"),
 }
 
 

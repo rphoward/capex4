@@ -1,0 +1,62 @@
+---
+description: USE WHEN writing or refactoring under src/capex3/ or tests/; data-shapes first, subtract complexity.
+alwaysApply: false
+globs: src/capex3/**,tests/**
+---
+
+(def-sop thermo-nuclear-implementation
+  (context
+    (target "autonomous-agent")
+    (optimization "maximum-determinism-minimum-tps-slop")
+    (apply-body-only-when (paths-under 'repo-layout.mdc product-home 'tests/))
+    (forbidden (apply-body-to 'docs '.cursor/plans 'mdc-rules)))
+
+  <central_idea>
+  (center-of-gravity
+    (invariant "Behavior follows data structures; subtract complexity; halt rather than guess."))
+  </central_idea>
+
+  (protocol-1-discovery-and-escalation
+    (search-pre-flight
+      (if (not (in-active-context? helper))
+          (execute-ide-search :targets '("/utils" "/models" "/shared"))
+          (fail :reason "Verify before assuming absence")))
+    (grill-interrogation
+      (if (or (ambiguous? requirement) (ambiguous? data-shape) (ambiguous? boundary))
+          (progn
+            (halt-generation)
+            (query-human :count 1 :propose-recommendation t)
+            (wait-for-resolution)))))
+
+  (protocol-2-architecture-and-mutation
+    (code-judo
+      (match task-type
+        (:feature (reframe-architecture :derive-from 'data-shapes :action 'delete-moving-parts :target-state 'inevitable-in-hindsight))
+        (:cosmetic-or-isolated-bug (execute-surgical-line-edits :surface-area 'minimum))))
+    (bounded-growth
+      (note "1300-line writer ceiling; extract before crossing")
+      (if (and (file-lines>? 1300) (not (is-bug-fix? task)))
+          (progn
+            (execute-single-surgical-extraction)
+            (reduce-surface-area))
+          (forbidden 'arbitrary-expansion-of-compact-modules)))
+    (anti-spaghetti
+      (assert (not (or (has-ad-hoc-boolean? diff) (has-special-case-branch? diff) (has-bare-conditional-validations? diff))))
+      (remedy (extract-to (or 'state-machine 'policy-object 'strategy-pattern)))
+      (enforce (encapsulate-validation-rules-regardless-of-scale))))
+
+  (protocol-3-boundaries-and-execution
+    (type-first
+      (assert (not (or (uses-any? diff) (uses-untyped-dict? diff) (uses-generic-wrapper? diff) (uses-raw-primitives-for-domain-logic? diff))))
+      (enforce (define-strict-distinct-schemas :inbound t :outbound t) (wrap-primitives-in-domain-value-objects))
+      (forbidden 'lazy-optionality-to-bypass-compiler))
+    (anti-magic
+      (assert (not (or (uses-dynamic-reflection-for-domain-logic? diff) (uses-hardcoded-string-mapping-for-state? diff))))
+      (remedy (delegate-unrolling-to-canonical-owner))
+      (forbidden 'obscuring-data-shapes-with-generic-runtime-mechanisms))
+    (failure-routing
+      (assert (not (or (swallows-error? diff) (returns-silent-null? diff))))
+      (enforce (fail-loudly-at-contract-boundary) (route-typed-domain-exceptions)))
+    (harness-safety
+      (enforce (terminal-calls-are 'non-interactive-one-liners) (use-shell 'posix-compliant-bash))
+      (forbidden 'raw-powershell-scripts 'unhandled-panics-crashing-host-process))))

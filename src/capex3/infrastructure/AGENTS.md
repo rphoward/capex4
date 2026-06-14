@@ -1,6 +1,6 @@
 # infrastructure — Agent Context
 
-**Parent:** `AGENTS.md` (repo root)
+**Parent:** `AGENTS.md` (repo root) — policy, boundaries, and commands live there.
 **Scope:** `src/capex3/infrastructure/`
 
 ## OVERVIEW
@@ -23,26 +23,5 @@ infrastructure/
 | Task | Location | Notes |
 |------|----------|-------|
 | Server entry | `server.py` | Delegates to `presentation.rental_capex_http_api` |
-| Workbook JSON load | `workbook_assumptions/__init__.py` | Must import `capex3.core.workbook_assumptions` |
+| Workbook JSON load | `workbook_assumptions/__init__.py` | Imports `capex3.core.workbook_assumptions` |
 | Default deal/workbook data | `workbook_assumptions/data/*.json` | Runtime truth (not `tests/fixtures/spreadsheet-defaults.json`) |
-
-## CONVENTIONS
-
-- `workbook_assumptions/__init__.py` owns all `importlib.resources` access for workbook JSON
-- `server.py` is wiring-only: imports presentation handler, binds port, serves static assets path
-- `__main__.py` delegates to `server.main`
-
-## ANTI-PATTERNS
-
-- `server.py` importing `capex3.core` or legacy shims
-- Route/payload logic in `server.py` (strings like `calculate_payload`, `"Route not found."`)
-- Business formulas or teaching journey rules in this layer
-- Top-level `workbook_assumptions` package (removed — use `infrastructure/workbook_assumptions/`)
-
-## TESTS / VERIFICATION
-
-```powershell
-$env:PYTHONPATH = 'src'
-python -m unittest tests.test_architecture_gates tests.test_focused_verification tests.test_reserve_account_apy_parity -v
-python -m capex3.infrastructure.server   # manual smoke; port from env or default
-```

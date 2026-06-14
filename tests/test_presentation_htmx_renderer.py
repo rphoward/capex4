@@ -255,8 +255,8 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("border: 1px solid var(--hairline)", stylesheet)
         self.assertIn('href="/assets/tokens.css"', response.body)
         self.assertIn('src="/assets/vendor/htmx.min.js"', response.body)
-        self.assertIn('src="/assets/vendor/highcharts.js"', response.body)
-        self.assertIn('src="/assets/charts.js"', response.body)
+        self.assertNotIn('src="/assets/vendor/highcharts.js"', response.body)
+        self.assertNotIn('src="/assets/charts.js"', response.body)
         self.assertNotIn('type="' + 'module"', response.body)
         self.assertNotIn("/assets/" + "modules/", response.body)
         self.assertNotIn("https" + "://", stylesheet)
@@ -400,19 +400,25 @@ class PresentationHtmxRendererTest(unittest.TestCase):
 
         self.assertIn('class="chart-wrap chart-stage" id="ten-year-story-chart"', response.body)
         self.assertIn('class="chart-side-legend"', response.body)
-        self.assertIn('class="highcharts-host" id="ten-year-story-chart-mount"', response.body)
-        self.assertIn("data-highcharts-config=", response.body)
+        self.assertIn('class="svg-wrap chart-canvas">', response.body)
+        self.assertIn("<svg", response.body)
+        self.assertIn('class="ten-year-series rental"', response.body)
+        self.assertIn('class="ten-year-series cash-flow"', response.body)
+        self.assertIn('class="ten-year-series money-market"', response.body)
+        self.assertIn('class="ten-year-series ira"', response.body)
+        self.assertIn('class="rental-area"', response.body)
+        self.assertIn('class="endpoint-label', response.body)
+        self.assertNotIn('class="highcharts-host"', response.body)
+        self.assertNotIn("data-highcharts-config=", response.body)
         self.assertIn("Liquidation wealth", response.body)
         self.assertIn("Cash position (operating + initial)", response.body)
         self.assertIn("Money market", response.body)
         self.assertIn(">IRA</span>", response.body)
-        self.assertIn("areaspline", response.body)
-        self.assertIn("ShortDash", response.body)
         self.assertIn("four paths compared", response.body)
         self.assertIn("Alternative paths use the money", response.body)
         self.assertIn(".chart-wrap", stylesheet)
         self.assertIn(".chart-side-legend", stylesheet)
-        self.assertIn(".highcharts-host", stylesheet)
+        self.assertIn(".svg-wrap svg", stylesheet)
         self.assertIn('value="repairFund"', response.body)
         self.assertIn("Repair Fund", response.body)
 
@@ -425,9 +431,14 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn('id="repair-fund-story-chart"', body)
         self.assertIn('id="repair-fund-info"', body)
         self.assertIn("Reserve balance vs. no-reserve surprise cost", body)
-        self.assertIn('class="highcharts-host" id="repair-fund-story-chart-mount"', body)
-        self.assertIn("&quot;step&quot;:&quot;left&quot;", body)
+        self.assertIn("<svg", body)
+        self.assertIn('class="repair-balance-series"', body)
+        self.assertIn('class="repair-surprise-series"', body)
+        self.assertIn('class="repair-event-marker"', body)
+        self.assertNotIn('class="highcharts-host"', body)
+        self.assertNotIn("&quot;step&quot;:&quot;left&quot;", body)
         self.assertIn('class="chart-legend repair-fund-legend"', body)
+        self.assertIn('aria-label="Repair fund chart series"', body)
         self.assertIn("Cumulative surprise cost", body)
         self.assertIn('id="repair-fund-cards"', body)
         self.assertIn("Dashboard monthly rate", body)
@@ -448,7 +459,7 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn("not every year adds new set-aside", body)
         self.assertNotIn("/mo set aside - balance rebuilds", body)
         self.assertNotIn("savings rise from monthly deposits", body)
-        self.assertIn(".highcharts-host", stylesheet)
+        self.assertIn(".repair-event-marker", stylesheet)
         self.assertNotIn(".layer-copy.disclaimer.teaching-only", stylesheet)
 
     def test_repair_fund_layer_surfaces_interest_earned_on_reserve(self) -> None:
@@ -917,6 +928,124 @@ class PresentationHtmxRendererTest(unittest.TestCase):
         self.assertIn('id="make-ready-warning"', response.body)
         self.assertIn("Make-ready shortfall flagged", response.body)
         self.assertIn("Near-term repairs from walkthrough", response.body)
+
+
+class HtmxChartsSvgGeometryTest(unittest.TestCase):
+    def test_point_centers_when_count_is_one(self) -> None:
+        height = htmx_charts.TEN_YEAR_SVG_HEIGHT
+        x, _ = htmx_charts._point(0, 100.0, 1, 0.0, 200.0, height)
+        left, _, width, _ = htmx_charts._plot_area(height)
+        self.assertAlmostEqual(x, left + width / 2)
+
+    def test_point_maps_negative_value_into_plot_area(self) -> None:
+        height = htmx_charts.TEN_YEAR_SVG_HEIGHT
+        min_y, max_y = -100.0, 100.0
+        _, y = htmx_charts._point(0, -50.0, 5, min_y, max_y, height)
+        _, top, _, plot_height = htmx_charts._plot_area(height)
+        mid_y = top + plot_height / 2
+        baseline_y = top + plot_height
+        self.assertGreater(y, mid_y)
+        self.assertLess(y, baseline_y)
+
+    def test_value_bounds_includes_negative_series(self) -> None:
+        min_y, max_y = htmx_charts._value_bounds([-50.0, 10.0, 100.0])
+        self.assertLess(min_y, 0.0)
+        self.assertGreater(max_y, 100.0)
+
+    def test_step_path_holds_then_jumps(self) -> None:
+        points = [(10.0, 20.0), (30.0, 40.0), (50.0, 60.0)]
+        path = htmx_charts._step_path(points)
+        self.assertIn("M 10.00,20.00", path)
+        self.assertIn("L 30.00,20.00", path)
+        self.assertIn("L 30.00,40.00", path)
+        self.assertIn("L 50.00,40.00", path)
+        self.assertIn("L 50.00,60.00", path)
+
+    def test_empty_geometry_helpers_return_empty_paths(self) -> None:
+        self.assertEqual(htmx_charts._line_path([]), "")
+        self.assertEqual(htmx_charts._area_path([], 0.0), "")
+        self.assertEqual(htmx_charts._step_path([]), "")
+        self.assertEqual(htmx_charts._step_area_path([], 0.0), "")
+
+    def test_repair_event_marker_escapes_html_in_labels(self) -> None:
+        events = [{"year": 2, "amount": 1000.0, "label": 'Roof & "<skylight>"'}]
+        markup = htmx_charts._repair_event_markers(
+            events,
+            5,
+            0.0,
+            5000.0,
+            htmx_charts.REPAIR_FUND_SVG_HEIGHT,
+        )
+        self.assertIn("&amp;", markup)
+        self.assertIn("&lt;skylight&gt;", markup)
+        self.assertNotIn('"<skylight>"', markup)
+
+    def test_repair_fund_svg_emits_stepped_surprise_path(self) -> None:
+        svg = htmx_charts._repair_fund_svg([0.0, 100.0, 200.0], [0.0, 50.0, 150.0], [], 3, 0.0, 500.0)
+        self.assertIn('class="repair-surprise-series"', svg)
+        self.assertIn('class="surprise-cost-area"', svg)
+        self.assertRegex(svg, r'd="[^"]*L \d+\.\d+,\d+\.\d+ L \d+\.\d+,\d+\.\d+"')
+
+    def test_endpoint_label_anchors_end_near_right_edge(self) -> None:
+        height = htmx_charts.TEN_YEAR_SVG_HEIGHT
+        left, _, width, _ = htmx_charts._plot_area(height)
+        x = left + width - 1.0
+        label_x, anchor = htmx_charts._endpoint_label_position(x, height)
+        self.assertEqual(anchor, "end")
+        self.assertLess(label_x, x)
+
+    def test_hex_alpha_derives_gradient_from_chart_rental(self) -> None:
+        rgba = htmx_charts._hex_alpha(htmx_charts.CHART_RENTAL, 0.12)
+        self.assertEqual(rgba, "rgba(26, 122, 76, 0.12)")
+
+    def test_line_series_from_graph_skips_non_numeric_values(self) -> None:
+        graph = {
+            "series": [
+                {"id": "a", "label": "A", "values": [1, None, 3]},
+                {"id": "b", "label": "B", "values": []},
+            ]
+        }
+        series = htmx_charts._line_series_from_graph(graph)
+        self.assertEqual(len(series), 1)
+        self.assertEqual(series[0]["values"], [1, 3])
+
+    def test_ten_year_chart_empty_trace_shows_unavailable_message(self) -> None:
+        from dataclasses import replace
+
+        from capex3.presentation.htmx_state import _build_state
+
+        state = replace(
+            _build_state({}, "calculate"),
+            active_evidence_layer="tenYear",
+            result={},
+        )
+        body = htmx_charts._ten_year_chart(state)
+        self.assertIn("Evidence trace unavailable.", body)
+
+    def test_repair_fund_chart_empty_trace_shows_unavailable_message(self) -> None:
+        from dataclasses import replace
+
+        from capex3.presentation.htmx_state import _build_state
+
+        state = replace(
+            _build_state({}, "calculate"),
+            active_evidence_layer="repairFund",
+            result={},
+        )
+        body = htmx_charts._repair_fund_chart(state)
+        self.assertIn("Repair reserve path trace unavailable.", body)
+
+    def test_ten_year_endpoints_escape_class_names(self) -> None:
+        series = [
+            {
+                "className": 'cash-flow"><script>',
+                "label": "Cash",
+                "values": [100.0, 200.0],
+            }
+        ]
+        markup = htmx_charts._ten_year_endpoints(series, 2, 0.0, 300.0, htmx_charts.TEN_YEAR_SVG_HEIGHT)
+        self.assertNotIn("<script>", markup)
+        self.assertIn("&lt;script&gt;", markup)
 
 
 def _field_grid_markup(body: str) -> str:

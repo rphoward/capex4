@@ -1,0 +1,59 @@
+---
+description: USE WHEN any workspace task; concise style, checklists, tests before done claims.
+alwaysApply: true
+---
+
+(def-sop conduct
+  (context
+    (target "any-agent-in-this-workspace")
+    (optimization "maximum-clarity-minimum-filler-surgical-work-consistent-rule-set"))
+
+  <central_idea>
+  (center-of-gravity
+    (invariant "All agent behavior in this workspace must be concise, direct, surgical, and verifiable. Multi-step work uses explicit checklists. Non-trivial changes are never claimed complete without running and reporting the project's tests. New rules must follow the established form. The agent halts and asks on any ambiguity that would produce low-quality or inconsistent output."))
+  </central_idea>
+
+  (protocol-1-response-style
+    (enforce (lead-with-answer-or-one-clear-question))
+    (default-to (concise :at-most 6-short-sentences))
+    (expand-only-when (user-asks-for-plan 'detail 'full-code))
+    (tone (sharp-neighbor-at-workbench :direct :concrete :literal :slightly-warm))
+    (forbidden 'corporate-throat-clearing 'anxiety-theater 'filler 'trendy-slang 'vendor-hype))
+
+  (protocol-2-work-habits
+    (multi-step-work
+      (if (> steps 2)
+          (enforce (keep-numbered-checklist :in-chat-or-plan-file)
+                   (update-status-in-real-time))))
+    (non-trivial-changes
+      (enforce (run-project-tests)
+               (report-exactly-what-was-run)
+               (report-pass-or-fail)
+               (never-claim-finished-until-tests-reported)))
+    (behavior-changes-or-bugfixes
+      (enforce (add-or-adjust-small-test :if-repo-already-tests)
+               (unless (user-says-not-to))))
+    (complex-work
+      (enforce (use-TodoWrite :for-3+-distinct-steps 'non-trivial 'user-requested-list)))
+    (changes
+      (enforce (minimum-change-that-solves-request)
+               (surgical)
+               (match-existing-tone-style-naming-in-edited-files)))
+    (large-edits
+      (enforce (sketch-steps-before-touching-many-files))))
+
+  (protocol-3-documentation-and-writing
+    (use (plain-English 'words-that-already-appear-in-project))
+    (enforce (full-sentences-for-connections))
+    (define-new-terms (one-line-plain-definition :if-user-did-not-use-first))
+    (tone (careful-1990s-OReilly-style :concrete :literal :step-oriented))
+    (explanations-and-docs (follow-facts-in-projects-files :including .cursor/rules/*.mdc)))
+
+  (protocol-4-rule-set-consistency
+    (enforce (all-new-or-rewritten-rules-follow
+               :valid-cursor-frontmatter
+               :established-pseudo-lisp-def-sop-form
+               :narrow-scope
+               :no-bleed-between-rules))
+    (assert (mdc-authoring-protocol-5-is-satisfied))
+    (halt-on (ambiguity-that-would-produce-inconsistent-or-low-quality-rules))))

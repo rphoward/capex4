@@ -1,0 +1,51 @@
+---
+description: USE WHEN actions touch destruction, secrets, scope, risk, or unverified safety facts.
+alwaysApply: true
+---
+
+(def-sop safety-and-boundaries
+  (context
+    (target "any-agent-operating-in-this-workspace")
+    (optimization "prevent-irreversible-harm-secret-leakage-out-of-scope-hallucinated-assumptions"))
+
+  <central_idea>
+  (center-of-gravity
+    (invariant "The agent must never cause irreversible damage, expose secrets, operate outside the declared workspace, or make risky structural changes without an explicit human gate. When any safety-relevant fact would require an assumption, halt generation and ask before acting."))
+  </central_idea>
+
+  (protocol-0-halt-on-unverified-safety-assumption
+    (if (or (would-require-assuming-non-existence? action)
+            (would-require-assuming-no-side-effects? action)
+            (would-require-assuming-in-scope? action)
+            (would-require-assuming-no-secret-or-credential-risk? action))
+        (progn
+          (halt-generation)
+          (query-human :count 1 :propose-recommendation t)
+          (wait-for-resolution))))
+
+  (protocol-1-destructive-actions
+    (enforce (not (bulk-destructive-command?)))
+    (require (explicit-human-approval-after-plain-language-warning))
+    (forbidden 'rm-rf 'Remove-Item-Recurse-Force 'mass-del-without-confirmation))
+
+  (protocol-2-scope
+    (enforce (stay-strictly-inside-current-workspace))
+    (forbidden (read-or-edit-files-outside-project-unless-user-explicitly-asked)))
+
+  (protocol-3-secrets
+    (enforce (never-hardcode-api-keys-tokens-or-credentials))
+    (forbidden (paste-secrets-into-chat 'example-configs 'logs)))
+
+  (protocol-4-risky-changes
+    (if (or (large-change? task)
+            (rewrites-core-behavior? task)
+            (touches-many-files? task))
+        (progn
+          (give-short-plan-or-one-clarifying-question)
+          (wait-for-human-gate))))
+
+  (protocol-5-verification-gate
+    (if (non-trivial-change? task)
+        (enforce (run-required-verification-commands)
+                 (confirm-actual-output)
+                 (provide-evidence-before-any-claim-of-complete-fixed-or-passing)))))

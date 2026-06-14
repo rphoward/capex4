@@ -113,12 +113,10 @@ class FocusedTargetVerificationTest(unittest.TestCase):
             PRESENTATION_ASSET_ROOT
         )
         asset_files = {
-            "charts.js",
             "fonts.css",
             "index.html",
             "styles.css",
             "tokens.css",
-            "vendor/highcharts.js",
             "vendor/htmx.min.js",
         }
         module_root = asset_root.joinpath("modules")
@@ -135,12 +133,10 @@ class FocusedTargetVerificationTest(unittest.TestCase):
         self.assertEqual(
             asset_files,
             {
-                "charts.js",
                 "fonts.css",
                 "index.html",
                 "styles.css",
                 "tokens.css",
-                "vendor/highcharts.js",
                 "vendor/htmx.min.js",
             },
         )
@@ -303,8 +299,6 @@ class FocusedTargetVerificationTest(unittest.TestCase):
             for path in [
                 "/assets/tokens.css",
                 "/assets/styles.css",
-                "/assets/charts.js",
-                "/assets/vendor/highcharts.js",
                 "/assets/vendor/htmx.min.js",
             ]:
                 with self.subTest(path=path):
@@ -605,12 +599,10 @@ class FocusedTargetVerificationTest(unittest.TestCase):
 class PresentationAssetMigrationTest(unittest.TestCase):
     def test_corrective_browser_assets_exist_in_capex3_presentation(self) -> None:
         expected_assets = {
-            "charts.js",
             "fonts.css",
             "index.html",
             "styles.css",
             "tokens.css",
-            "vendor/highcharts.js",
             "vendor/htmx.min.js",
         }
         actual_assets = {
@@ -626,8 +618,8 @@ class PresentationAssetMigrationTest(unittest.TestCase):
 
         self.assertIn('href="/assets/tokens.css"', index)
         self.assertIn('href="/assets/styles.css"', index)
-        self.assertIn('src="/assets/vendor/highcharts.js"', index)
-        self.assertIn('src="/assets/charts.js"', index)
+        self.assertNotIn('src="/assets/vendor/highcharts.js"', index)
+        self.assertNotIn('src="/assets/charts.js"', index)
         self.assertIn('src="/assets/vendor/htmx.min.js"', index)
         self.assertIn('hx-get="/ui/app"', index)
         self.assertIn('rel="preconnect" href="https://fonts.googleapis.com"', index)
@@ -665,7 +657,6 @@ class PresentationAssetMigrationTest(unittest.TestCase):
             if path.is_file()
             and path.suffix in {".html", ".css", ".js"}
             and path.as_posix().endswith("/vendor/htmx.min.js") is False
-            and path.as_posix().endswith("/vendor/highcharts.js") is False
         )
 
         expected_routes = {

@@ -1,0 +1,83 @@
+---
+description: USE WHEN creating or editing .cursor/rules/*.mdc; frontmatter, globs syntax, injection modes.
+alwaysApply: false
+globs: .cursor/rules/**
+---
+
+(def-sop mdc-authoring
+  (context
+    (target "cursor-rule-authoring-agent")
+    (optimization "maximum-determinism-minimum-slop-consistent-rule-set"))
+
+  <central_idea>
+  (center-of-gravity
+    (invariant "Every .mdc is valid Cursor frontmatter plus a focused pseudo-Lisp SOP; declare injection mode explicitly; keep each file small (aim 30-50 lines); halt on ambiguous purpose or scope."))
+  </central_idea>
+
+  (protocol-1-purpose-and-scope-grilling
+    (pre-flight-inventory
+      (execute-ide-search :targets '(".cursor/rules/*.mdc" "current rule set" "any legacy single-file rule formats present")))
+    (grill-interrogation
+      (if (or (ambiguous? purpose-of-rule-being-written)
+              (ambiguous? when-it-should-activate)
+              (ambiguous? boundary-of-its-responsibility))
+          (progn
+            (halt-generation)
+            (query-human :count 1 :propose-recommendation t)
+            (wait-for-resolution)))))
+
+  (protocol-2-frontmatter-and-injection
+    (valid-keys-only (description alwaysApply globs))
+    (every-file-must-declare (alwaysApply true-or-false))
+    (flat-store-only ".cursor/rules/*.mdc" (forbidden 'subfolders-under-rules))
+    (globs-field
+      (format "one comma-separated string, unquoted, no YAML lists, no brace groups")
+      (example "src/**/*.ts,tests/**/*.py"))
+    (forbidden 'alwaysApply-true-with-globs)
+    (injection-vs-activation
+      (note "Injection puts this rule file body into context; activation is whether the model follows it.")
+      (mode :global-baseline
+        (alwaysApply true)
+        (omit globs)
+        (rule-body-injected-every-session))
+      (mode :path-scoped
+        (alwaysApply false)
+        (globs required)
+        (when "a file matching globs is open or referenced"
+          (inject "this rule file body")))
+      (mode :intent-scoped
+        (alwaysApply false)
+        (omit globs)
+        (description "USE WHEN …" under-120-chars)
+        (inject "rule body when model judges intent matches description")))
+    (description
+      (audience "model indexing and intent match, not human labels")
+      (forbidden "Always loaded" when alwaysApply-is-true)
+      (note "global-baseline may use USE WHEN for index clarity; body still injects every session"))
+    (global-baseline-set (keep-small) (prefer path-scoped-or-intent-scoped for detail)))
+
+  (protocol-3-focused-rules-and-structural-subtraction
+    (prefer (multiple-small-focused-rules over 'one-giant-always-on-blob))
+    (if (rule-surface-exceeds-minimal-unit-for-its-purpose)
+        (progn
+          (execute-single-surgical-extraction :into-new-mdc-file)
+          (reduce-surface-area)))
+    (anti-ad-hoc-blob
+      (assert (not (or (has-unstructured-prose-blob? diff)
+                       (has-ad-hoc-sections? diff))))
+      (remedy (extract-to 'dedicated-focused-mdc))))
+
+  (protocol-4-legacy-porting
+    (enforce (when-porting-from-single-file-formats
+               (inventory-content)
+               (port-only-useful-parts-to-scoped-mdc-files)
+               (delete-legacy-form))))
+
+  (protocol-5-set-wide-form-consistency
+    (enforce (all-rules-in-this-workspace-must-use
+               :valid-cursor-frontmatter
+               :established-pseudo-lisp-def-sop-form
+               :narrow-scope
+               :no-bleed-between-rules))
+    (assert (no-duplication-of-responsibility-with 'conduct 'safety 'thermonuclear 'any-other-rule))
+    (forbidden 'embedding-coding-discipline 'embedding-safety-logic 'embedding-response-habits-into-authoring-rule)))

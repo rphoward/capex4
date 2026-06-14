@@ -1,0 +1,31 @@
+---
+description: USE WHEN editing README.md or docs/** human prose; plain language and O'Reilly clarity.
+alwaysApply: false
+globs: README.md,**/README.md,docs/**,CONTEXT.md,PROOF.md,AGENTS.md,**/AGENTS.md
+---
+
+(def-sop doc-style
+  (context
+    (target "any-agent-writing-human-facing-docs")
+    (optimization "maximum-clarity-minimum-reading-load"))
+
+  <central_idea>
+  (center-of-gravity
+    (invariant "Human-facing documentation must be written in plain language with short sentences, concrete steps, and low cognitive load. Combine this with careful 1990s O'Reilly-style clarity. Avoid hype, slang, dense prose, and anything that requires intense reading skill."))
+  </central_idea>
+
+  (protocol-1-tone-and-readability
+    (enforce (plain-language-first))
+    (prefer (short-sentences 'concrete-steps 'direct-statements))
+    (combine-with (careful-1990s-OReilly-style :clarity :precision))
+    (forbidden 'trendy-ai-slang 'interview-pack-phrasing 'vendor-hype 'dense-academic-prose 'unnecessary-jargon))
+
+  (protocol-2-verification-habits
+    (when (doc-freshness-is-uncertain)
+      (enforce (say "verify locally with the installed version")))
+    (when (writing-annexes 'research 'reference-material)
+      (treat-as (scan-reference-only :not-instructions-to-run-inside-agents))))
+
+  (protocol-3-consistency-with-overall-conduct
+    (assert (satisfies-conduct-protocol-3-documentation-and-writing))
+    (halt-on (ambiguity-that-would-produce-hard-to-read-or-hyped-docs))))

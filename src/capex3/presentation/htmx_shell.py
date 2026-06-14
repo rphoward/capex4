@@ -10,9 +10,8 @@ Refero reference lock (composite — no single dashboard to copy):
 | KPI + chart rhythm | Wealthsimple retirement calc | screen 4f2cb529-3a19-4ce3-9d5c-4f29a7cdc038 |
 | Workbook tables | Equals cash burn template | screen 33bfb3dd-f2d2-4bdc-9d76-f815ec52b134 |
 
-Tokens live in ``browser_assets/tokens.css``. Charts use vendored Highcharts
-(``browser_assets/vendor/highcharts.js`` + ``browser_assets/charts.js``) with
-server-rendered JSON config. CSS applies Runway 12px shell cards +
+Tokens live in ``browser_assets/tokens.css``. Charts are server-rendered inline
+SVG from ``htmx_charts.py``, refreshed by htmx swaps. CSS applies Runway 12px shell cards +
 amber CTA, Midday 0px data radius + hairline grids, Trulia split, Wealthsimple serif KPIs.
 
 **Explicit rejects:** dark sidebar shell, bento KPI grid, banana accents, grid-paper body,
